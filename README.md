@@ -1,3 +1,4 @@
+![Demo](https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/swappy-20241018-013259.png?raw=true))
 ![Logo](https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/resources/icons/icon.png?raw=true)
 
 # Music Visualizer 2.0 (Ported for Linux)
