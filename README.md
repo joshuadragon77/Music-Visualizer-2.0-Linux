@@ -37,9 +37,9 @@ The other versions utilized native Java entirely and AJK Render Engine which was
 I went to commit this and push this because I need some reference I made cool projects. not a noob who hides cool things.
 
 ## Controls
-Left Arrow - Previous Track
-Right Arrow - Previous Track
-Space - Pause/Play
+Left Arrow - Previous Track <br>
+Right Arrow - Previous Track <br>
+Space - Pause/Play <br>
 
 ## Dependencies
 You will need to install **typescript** to build the application to get the javascript files.
