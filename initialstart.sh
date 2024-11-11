@@ -1,5 +1,9 @@
 #!/bin/env sh
 
+echo "Downloading required packages..."
+
+npm i 
+
 echo "Typescript Building..."
 tsc
 cd resources; tsc;

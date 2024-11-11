@@ -474,6 +474,7 @@ class DrawingRunTime{
                 yScale: 1,
                 rotation: 0,
                 xOffset: 0,
+                blurFactor: 0,
                 yOffset: 0,
                 imageRenderStyle: "old" as "old" | "current" | "previous" 
             },
@@ -1133,6 +1134,7 @@ class DrawingRunTime{
 
             let animationFactor4 = animationFactor2 * animationFactor3;
 
+            renderProfile.blurFactor = animationFactor4;
             renderProfile.xScale *= (1 - animationFactor4) * 0.1 + 0.9;
             renderProfile.yScale *= (1 - animationFactor4) * 0.1 + 0.9;
             renderProfile.xOffset -= 5 * animationFactor4;
@@ -1270,6 +1272,7 @@ class DrawingRunTime{
         }
     
         context2D.clip();
+        context2D.filter = `blur(${2 * renderProfile.blurFactor}px)`;
 
         if (aCP.image){
             switch(renderProfile.imageRenderStyle){
@@ -1317,28 +1320,30 @@ class DrawingRunTime{
 
 
             context2D.save();
-            context2D.translate(aCP.x + aCP.width * (.8 + 0.2 * (1 - animationFactor3)), aCP.y + aCP.height * (.8 + 0.2 * (1 - animationFactor3)));
-            context2D.scale(0.8 * animationFactor3, 0.8 * animationFactor3);
+            context2D.translate(aCP.x + aCP.width * (0.5 + 0 * (1 - animationFactor3)), aCP.y + aCP.height * (0.5 + 0 * (1 - animationFactor3)));
+            context2D.scale(1.5 - 0.5 * animationFactor3, 1.5 - 0.5 * animationFactor3);
             context2D.roundRect(-100, -100, 200, 200, 25);
             context2D.scale(0.8, 0.8);
             context2D.closePath();
 
-            context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, 0.2).toStyle();
+            let opacity = animationFactor3;
+
+            context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, 0.5 * opacity).toStyle();
             context2D.shadowBlur = 15;
             context2D.shadowOffsetX = -4;
             context2D.shadowOffsetY = -4;
-            context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.brighten(backgroundColor), 1).toStyle();
+            context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.brighten(backgroundColor), opacity).toStyle();
             context2D.fill();
             context2D.shadowBlur = 15;
             context2D.shadowOffsetX = 4;
             context2D.shadowOffsetY = 4;
-            context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.darken(backgroundColor), 1).toStyle();
+            context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.darken(backgroundColor), opacity).toStyle();
             context2D.fill();
 
             context2D.clip();
 
-            context2D.fillStyle = foregroundColor.toStyle();
-            context2D.strokeStyle = foregroundColor.toStyle();
+            context2D.fillStyle = ColorMixer.newOpacity(foregroundColor, opacity).toStyle();
+            context2D.strokeStyle = ColorMixer.newOpacity(foregroundColor, opacity).toStyle();
             context2D.shadowBlur = 0;
             context2D.shadowOffsetX = 0;
             context2D.shadowOffsetY = 0;
