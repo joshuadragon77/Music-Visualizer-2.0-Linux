@@ -1,3 +1,4 @@
+![Demo](https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/swappy-20241018-013259.png?raw=true))
 ![Logo](https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/resources/icons/icon.png?raw=true)
 
 # Music Visualizer 2.0 (Ported for Linux)
@@ -37,9 +38,9 @@ The other versions utilized native Java entirely and AJK Render Engine which was
 I went to commit this and push this because I need some reference I made cool projects. not a noob who hides cool things.
 
 ## Controls
-Left Arrow - Previous Track
-Right Arrow - Previous Track
-Space - Pause/Play
+Left Arrow - Previous Track <br>
+Right Arrow - Previous Track <br>
+Space - Pause/Play <br>
 
 ## Dependencies
 You will need to install **typescript** to build the application to get the javascript files.
