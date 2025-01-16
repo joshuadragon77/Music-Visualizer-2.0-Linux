@@ -77,6 +77,13 @@ type EPointers = {
 
 let openedLowLevelJadeDB: LowLevelJadeDB[] = [];
 
+type WriteDataArgs = {
+    buffer: Buffer
+    index: number
+    dataName: string = "Unnamed"
+    dataType: number = 0
+}
+
 export class LowLevelJadeDB{
 
     private blockSize: number;
@@ -87,6 +94,9 @@ export class LowLevelJadeDB{
     
     ePointers: EPointers[] = [];
     ePointersIndex: EPointers[] = [];
+    writeDataQueueList: WriteDataArgs[] = [];
+    writingData = false;
+    internalFlushCallback: (() => (void)) | undefined;
     
     constructor(fileName: string, blockSize: number = 8192, password?: string){
         if (blockSize <= 192 + 16){
@@ -139,25 +149,32 @@ export class LowLevelJadeDB{
 
                 console.debugDetailed(`Pre-writing EPointers to this specific block location ${newBlockLocation}`);
                 let startingEPointerIndex = newBlockLocation * 3;
-                for (let index = startingEPointerIndex;index<Math.min(this.ePointers.length, startingEPointerIndex+3);index++){
-                    let ePointer = this.ePointers[index];
 
-                    if (!ePointer){
-                        ePointer = {
-                            position: index,
-                            index: null,
-                            type: 1,
-                            size: 1
-                        }
-                    }
+                // first fix?
+                for (let index = startingEPointerIndex;index<startingEPointerIndex+3;index++){
 
                     let ePointerBuffer = Buffer.alloc(7);
-
-                    ePointerBuffer.writeUIntBE(ePointer.type, 0, 1);
-                    ePointerBuffer.writeUIntBE(ePointer.index !== null ? ePointer.index + 1 : 0, 1, 3);
-                    ePointerBuffer.writeUIntBE(ePointer.size, 4, 3);
-
                     let ePointerIndex = index % 3;
+
+                    if (index < this.ePointers.length){
+                        let ePointer = this.ePointers[index];
+    
+                        if (!ePointer){
+                            ePointer = {
+                                position: index,
+                                index: null,
+                                type: 1,
+                                size: 1
+                            }
+                        }
+    
+    
+                        ePointerBuffer.writeUIntBE(ePointer.type, 0, 1);
+                        ePointerBuffer.writeUIntBE(ePointer.index !== null ? ePointer.index + 1 : 0, 1, 3);
+                        ePointerBuffer.writeUIntBE(ePointer.size, 4, 3);
+    
+                    }
+
 
                     results.buffer.write(ePointerBuffer.toString("binary"), 43 + ePointerIndex * 7, "binary");
                 }
@@ -524,6 +541,42 @@ export class LowLevelJadeDB{
         return bytes;
     }
 
+    writeDataQueue(buffer: Buffer, index: number, dataName: string = "Unnamed", dataType: number = 0){
+        console.debugDetailed(`Queued ${dataName} for data write at index ${index}`);
+        this.writeDataQueueList.push({
+            buffer, index, dataName, dataType
+        });
+
+        if (this.writingData == false){
+            console.debugDetailed(`Started up Data Queue Writer!`);
+            this.writingData = true;
+
+            (async ()=>{
+                while (true){
+                    let nextQueuedItem = this.writeDataQueueList.shift();
+
+                    if (!nextQueuedItem){
+                        console.debugDetailed(`All data has been written up. Queue is now empty.`);
+                        this.writingData = false;
+                        if (this.internalFlushCallback){
+                            this.internalFlushCallback();
+                            this.internalFlushCallback = undefined;
+                        }
+                        break;
+
+                    }
+
+                    console.debugDetailed(`Now writing from the queue, data ${nextQueuedItem.dataName} at index ${nextQueuedItem.index}`);
+                    await this.writeData(nextQueuedItem.buffer, nextQueuedItem.index, nextQueuedItem.dataName, nextQueuedItem.dataType);
+                    console.debugDetailed(`Finished writing the data ${nextQueuedItem.dataName} at index ${nextQueuedItem.index} from queue!`);
+                }
+            })();
+        }
+    }
+
+    // VERY UNSAFE IN PARALLEL CALLS. YOU
+    // YOU MUST OBEY THE PROMISE YOU WILL GET SCREWED.
+    // better yet get screwed less by using the safer writeDataQueue
     writeData(buffer: Buffer, index: number, dataName: string = "Unnamed", dataType: number = 0){
         return new Promise<void>(async (accept, reject)=>{
             console.debugDetailed("Preparing to write data...");
@@ -684,11 +737,14 @@ export class LowLevelJadeDB{
                                 if (empty == false)
                                     break;
                             }
-                            return empty && currentIndex > 2500;
+                            return empty;
                         })();
     
                         if (isEPointerTerminal){
-                            break;
+                            // stupid fix now as for some reason epointers exist beyond terminated epointers which caused missing data issues.
+                            currentIndex += 1;//ePointerSize;
+                            console.debugDetailed(`Found null EPointer. at ${currentIndex} Skipping...`);
+                            continue;
                         }
     
                         let ePointerType = buffer.readUIntBE(0, 1);
@@ -707,16 +763,21 @@ export class LowLevelJadeDB{
                                 size: ePointerSize,
                             };
                             console.debugDetailed(`Found an EPointer located at ${ePointer.position}. Index: ${ePointer.index}, Size: ${ePointerSize}, Type: ${ePointerType}`);
+                            
+                            if (ePointer.index === null || (ePointer.index !== null && !this.ePointersIndex[ePointer.index])){
+                                this.ePointers[currentIndex] = ePointer;
+                                
+                                if (ePointer.index !== null)
+                                    this.ePointersIndex[ePointer.index] = ePointer;
+
+                            }else{
+                                console.warn(`Potential EPointer duplicate. The ${currentIndex} EPointer is attempting to overwrite already existing epointers. Ignoring EPointer.`);
+                            }
+
     
-                            this.ePointers[currentIndex] = ePointer;
-    
-                            if (ePointer.index !== null)
-                                this.ePointersIndex[ePointer.index] = ePointer;
-    
-                            // currentIndex += ePointerSize;
-                            currentIndex += 1;
+                            currentIndex += ePointerSize;
                             foundEpointers += 1;
-                            // console.debugDetailed(`Reading EPointers ahead. Determined the block size is ${ePointerSize}. Predicting and jumping to ${currentIndex} to quick read EPointers.`);
+                            console.debugDetailed(`Reading EPointers ahead. Determined the block size is ${ePointerSize}. Predicting and jumping to ${currentIndex} to quick read EPointers.`);
                         }
     
                     }
@@ -765,7 +826,7 @@ export class LowLevelJadeDB{
         console.debugDetailed("An unexpected use of the halt function of JADEDB has been called!");
         console.debugDetailed("Writing EPointer Tables...");
 
-        for (let index = 0;index<=this.ePointers.length;index++){
+        for (let index = 0;index<this.ePointers.length;index++){
             let ePointer = this.ePointers[index];
 
             if (!ePointer){
@@ -795,9 +856,19 @@ export class LowLevelJadeDB{
         FileSystemS.close(fileDescriptor);
     }
 
+    flush(){
+        return new Promise<void>((accept)=>{
+            this.internalFlushCallback = accept;
+        });
+    }
+
     close(){
         return new Promise(async (accept, reject)=>{
             if (this.fileHandler){
+                if (this.writingData){
+                    console.debugDetailed("Flushing Database queue... Waiting...");
+                    await this.flush();
+                }
 
                 console.debugDetailed("Closing JadeDB");
                 console.debugDetailed("Writing EPointer Tables...");

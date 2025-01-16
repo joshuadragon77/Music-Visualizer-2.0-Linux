@@ -95,7 +95,7 @@ export function fetchCurrentSpotifyState(){
                 timeLength: data["mpris:length"] / 1000000,
                 artistName: (data["xesam:artist"] as string[]).join(" & "),
                 trackName: data["xesam:title"],
-                artworkURL: data["mpris:artUrl"],
+                artworkURL: data["mpris:artUrl"] || "missing value",
                 spotifyID: data["mpris:trackid"],
                 albumName: data["xesam:album"],
                 timeFeteched: Date.now(),

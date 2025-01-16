@@ -589,9 +589,9 @@ class DrawingRunTime{
     static safariBackgroundColor = new Color(255, 255, 255);
 
     static produceMinuteShakes(index: number){
-        let timeScale = Date.now();
+        let timeScale = Date.now()  * 128591;
         
-        return Math.floor(4 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0] || 0, 2) * Math.cos(index + timeScale / 500)
+        return Math.floor(5 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0] || 0, 2) * Math.cos(index + timeScale / 500)
          + 6 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[2] || 0, 2) * Math.cos(index + timeScale / 50)
          + 3 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[5] || 0, 2) * Math.cos(index + timeScale / 250)) * 
             (BackgroundTasks.jadeLyricsSupported ? 0.35 : 1.25);
@@ -1835,7 +1835,7 @@ class DrawingRunTime{
                 
                 if (BackgroundTasks.currentSpotifyState && BackgroundTasks.currentJadeLyrics){
                     let tPDE = cBP.timePositionDragElement;
-                    currentTimePosition = tPDE.currentTimePosition + .1;//- 0.05;//- .05;
+                    currentTimePosition = tPDE.currentTimePosition;// + .1;//- 0.05;//- .05;
 
                     // if (dftContent.enabled == false){
                     //     currentTimePosition += 0.24;
@@ -2585,7 +2585,7 @@ class DrawingRunTime{
         setInterval(()=>{
             samples.push(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0]);
 
-            if (Date.now() - timeSinceVisualizerModeChange > 3000 && samples.length >= 30){
+            if (Date.now() - timeSinceVisualizerModeChange > 3000 && samples.length >= 50){
 
                 let averageLoudness = 0;
 
@@ -2612,7 +2612,7 @@ class DrawingRunTime{
                     visualizerMode = selectedVisualizerMode;
                     timeSinceVisualizerModeChange = Date.now();
                     if (selectedVisualizerMode == 1){
-                        threshold = 0.1;
+                        threshold = 0.05;
                     }else{
                         threshold = 0.5;
                     }
@@ -2640,13 +2640,13 @@ class DrawingRunTime{
             backgroundContext2D.fillRect(0, 0, maxWidth, maxHeight);
 
             {
-                let timeFactor = Math.min(Math.max(0, (Date.now() - timeSinceVisualizerModeChange) / 3000), 1);
+                let timeFactor = Math.min(Math.max(0, (Date.now() - timeSinceVisualizerModeChange) / 2000), 1);
                 let animationFactor = AnimationTween.cos(timeFactor);
                 visualizerModeTween = beforeVisualizerMode + (visualizerMode - beforeVisualizerMode) * animationFactor;
             }
 
-            let checkerboardEnabled = Math.pow(Math.min(Math.max(0, 1 - Math.abs(2 * (visualizerModeTween - 1))), 1) - 1, 3) + 1;
-            let sunnyDayEnabled = Math.pow(Math.min(Math.max(0, 1 - Math.abs(1.25 * (visualizerModeTween - 0.75))), 1) - 1, 3) + 1;
+            let checkerboardEnabled = Math.pow(Math.min(Math.max(0, 1 - Math.abs(1 * (visualizerModeTween - 1))), 1) - 1, 3) + 1;
+            let sunnyDayEnabled = Math.pow(Math.min(Math.max(0, 1 - Math.abs(1 * (visualizerModeTween - 0.75))), 1) - 1, 3) + 1;
             let cityLightEnabled = Math.pow(Math.min(Math.max(0, 1 - Math.abs(.5 * (visualizerModeTween))), 1) - 1, 3) + 1;
             
             if (DrawingRunTime.foregroundColorPallete.length > 0){
@@ -2674,9 +2674,9 @@ class DrawingRunTime{
                     backgroundContext2D.restore();
                 }
                 if (sunnyDayEnabled != 0){
-                    for (let i = 0;i<25;i++){
-                        let randomRotation = 3 * Math.tan(i / 25 - 0.5) + 0.75 
-                            + Math.sin(Date.now() / 2500) * Math.PI / 25 * (.5 + .75 * DrawingRunTime.bundleRandomness[i + 3]);
+                    for (let i = 0;i<50;i++){
+                        let randomRotation = 3 * Math.tan(i / 50 - 0.5) + 0.75 
+                            + Math.sin(Date.now() / 2500) * Math.PI / 50 * (.5 + .75 * DrawingRunTime.bundleRandomness[i + 3]);
                         let maximumMagnitude = 2 * Math.sqrt(Math.pow(maxWidth, 2) + Math.pow(maxHeight, 2));
                         let toX = Math.cos(randomRotation) * maximumMagnitude;
                         let toY = Math.sin(randomRotation) * maximumMagnitude;
@@ -2689,7 +2689,7 @@ class DrawingRunTime{
 
                         backgroundContext2D.lineWidth = 100;
                         backgroundContext2D.shadowColor = randomColor.toStyle();
-                        backgroundContext2D.strokeStyle = ColorMixer.newOpacity(randomColor,.4 * sunnyDayEnabled).toStyle();
+                        backgroundContext2D.strokeStyle = ColorMixer.newOpacity(randomColor,.2 * sunnyDayEnabled).toStyle();
                         backgroundContext2D.stroke();
                     }
                 }
