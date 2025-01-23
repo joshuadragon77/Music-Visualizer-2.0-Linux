@@ -205,7 +205,7 @@ console.bindToExit(AudioListener.stopAudioListening);
 class JadeLyricsManager{
 
     static detailFactor = 10;
-    static filePath = "./lyrics/";
+    static filePath = `${process.env.HOME}/Documents/Lyrics/`;
     
     static jadeLyricsPattern = /(?:waittill (\d*\.\d*);\necho -n \"(.*? )\")|(?:echo -n \"\n\[2K\")/;
     static jadeLyricsNamePattern = /# Jade's Lyrics Generator for the song (.*)\n/;
@@ -216,6 +216,10 @@ class JadeLyricsManager{
 
     static init(){
         return new Promise<void>((accept, reject)=>{
+            if (!FileSystem.existsSync(this.filePath)){
+                console.log("Making a new Lyrics Folder");
+                FileSystem.mkdirSync(this.filePath);
+            }
             FileSystem.readdir(this.filePath, (err, files)=>{
                 if (err){
                     reject("An unknown error has occured when initializing...");

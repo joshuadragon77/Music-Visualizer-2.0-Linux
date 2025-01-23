@@ -80,8 +80,8 @@ let openedLowLevelJadeDB: LowLevelJadeDB[] = [];
 type WriteDataArgs = {
     buffer: Buffer
     index: number
-    dataName: string = "Unnamed"
-    dataType: number = 0
+    dataName: string
+    dataType: number
 }
 
 export class LowLevelJadeDB{
