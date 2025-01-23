@@ -51,7 +51,8 @@ You will need **NodeJS** for obvious reasons, it is the main program that execut
 ## Jade Lyrics
 There is a Python File I will provide that will allow you to generate Jade Lyrics file given a track you are playing manually in the background.
 
-I am working on a way to generate Jade Lyrics through a GUI. Technically I do, but it's a Java App Running on macOS frameworks and can't run on Linux. sorry. 👉👈
+If you are interested in generating Jade Lyrics files for my Music Visualizer Program! I have solution for you, you will need to use this Legacy Java App. :) It's ported from macOS to Linux and I fixed a few things. It's a bit scuffed and is only ready enough for generating Lyrics.
+https://github.com/joshuadragon77/Music-Visualizer-Legacy-Linux
 
 ## My Module Dependencies
 
