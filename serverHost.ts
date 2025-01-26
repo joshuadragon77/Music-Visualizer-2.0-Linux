@@ -23,7 +23,7 @@ let spotifyInterface: DBusInterface;
 export function connect(){
     return new Promise<void>((accept)=>{
         console.log("Attempting to get interface...");
-        bus.getInterface("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
+        bus.getInterface("org.mpris.MediaPlayer2.playerctld", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
             spotifyInterface = interf;
             console.log("Got interface!");
             accept();
@@ -47,6 +47,8 @@ let currentSpotifyState: SpotifyState = {
     volume: 0
 };
 
+let currentMediaSource: "Spotify" | "Unknown" = "Unknown";
+
 export function pause(){
     spotifyInterface.Pause();
 }
@@ -69,7 +71,7 @@ export function playPause(){
 
 export function seekTrack(position: number){
     fetchCurrentSpotifyState().then(()=>{
-        spotifyInterface.Seek((position - currentSpotifyState.timePosition) * 1000000);
+        spotifyInterface.Seek((position - currentSpotifyState.timePosition) * (currentMediaSource == "Spotify" ? 1000000 : 1));
     })
 }
 
@@ -79,7 +81,11 @@ export function fetchCurrentSpotifyState(){
 
         let completeTask = function(){
             completedTask ++;
-            if (completedTask == 4){
+            if (completedTask == 3){
+                if (currentMediaSource == "Spotify"){
+                    currentSpotifyState.timeLength /= 1000000;
+                    currentSpotifyState.timePosition /= 1000000;
+                }
                 return accept(currentSpotifyState);
             };
         };
@@ -92,7 +98,7 @@ export function fetchCurrentSpotifyState(){
                 playState: false,
                 localTrack: false,
                 timePosition: 0,
-                timeLength: data["mpris:length"] / 1000000,
+                timeLength: data["mpris:length"],
                 artistName: (data["xesam:artist"] as string[]).join(" & "),
                 trackName: data["xesam:title"],
                 artworkURL: data["mpris:artUrl"] || "missing value",
@@ -103,11 +109,13 @@ export function fetchCurrentSpotifyState(){
                 trackNumber: data["xesam:trackNumber"],
                 volume: 0
             };
+
+            currentMediaSource = !currentSpotifyState.spotifyID.match(/spotify/) ? "Unknown" : "Spotify";
         
             spotifyInterface.getProperty("Position", (err, data: any)=>{
                 if (err)
                     console.error(err);
-                currentSpotifyState.timePosition = data / 1000000;
+                currentSpotifyState.timePosition = data;
                 completeTask();
             });
             
@@ -118,12 +126,12 @@ export function fetchCurrentSpotifyState(){
                 completeTask();
             });
             
-            spotifyInterface.getProperty("Volume", (err, data: any)=>{
-                if (err)
-                    console.error(err);
-                currentSpotifyState.volume = data;
-                completeTask();
-            });
+            // spotifyInterface.getProperty("Volume", (err, data: any)=>{
+            //     if (err)
+            //         console.error(err);
+            //     currentSpotifyState.volume = data;
+            //     completeTask();
+            // });
             
             completeTask();
         });
@@ -416,64 +424,6 @@ class StoringSystem{
     static database = new LowLevelJadeDB("./stores/spotifyImageCache.db", 16384);
     static emptyImage = Buffer.alloc(0);
 
-    static obtainAppleImage(uniqueIdentifier: string){
-        return new Promise<Buffer>((accept, reject)=>{
-            let location = StoringSystem.imageLookupTable.get(uniqueIdentifier);
-
-            if (uniqueIdentifier == "missing value"){
-                return FileSystem.readFile("./resources/GenericIcon.png", (error, buffer)=>{
-                    accept(buffer);
-                });
-            }
-
-            if (StoringSystem.loadingImages.has(uniqueIdentifier)){
-                return accept(StoringSystem.emptyImage);
-            }
-
-    
-            if (location == null){
-                let newIndexLocation = StoringSystem.imageLookupTable.size;
-
-                console.log(newIndexLocation);
-                StoringSystem.loadingImages.set(uniqueIdentifier, true);
-    
-                ChildProcess.exec("osascript -e 'tell app \"Music\" to get raw data of artworks 1 of current track'", (err, data)=>{
-                    if (err){
-                        StoringSystem.loadingImages.delete(uniqueIdentifier);
-                        console.error("Image save failure. Loading is set to default.");
-                        return;
-                    }
-                    console.log("Decoding Apple's Script Data nonsense to actual nonsense...");
-
-                    let readableRawData = data.match(/^«data tdta([0-9,A-F]+)/)![1];
-                    let decodedRawData = "";
-
-                    for (let i = 0;i<readableRawData.length;i+=4){
-                        let leastSignificantByte = readableRawData[i] + readableRawData[i + 1];
-                        let mostSignificantByte = readableRawData[i + 2] + readableRawData[i + 3];
-
-                        decodedRawData += leastSignificantByte + mostSignificantByte;
-                    }
-
-
-                    let buffer = Buffer.from(decodedRawData, "hex");
-                    console.log(buffer);
-                    // FileSystem.writeFileSync("/Users/joshuaounalom/Desktop/shit.png", buffer);
-                    StoringSystem.database.writeData(buffer, newIndexLocation, uniqueIdentifier).then(()=>{
-                        StoringSystem.loadingImages.delete(uniqueIdentifier);
-                        StoringSystem.imageLookupTable.set(uniqueIdentifier, newIndexLocation);
-                        StoringSystem.saveLookupTable();
-                    });
-                    accept(buffer);
-                });
-            }else{
-                StoringSystem.database.readData(location).then((results)=>{
-                    accept(results.Buffer);
-                });
-            }
-        });
-    }
-
     static obtainSpotifyImage(imageURL: string, name: string = "UNKNOWN"){
 
 
@@ -488,6 +438,19 @@ class StoringSystem{
                         })
                     accept(buffer);
                 })
+                return;
+            }
+
+            let fileURLMatch = imageURL.match(/file:\/\/(.+)/);
+
+            if (fileURLMatch){
+                FileSystem.readFile(fileURLMatch[1], (error, buffer)=>{
+                    if (error)
+                        return FileSystem.readFile("./resources/GenericIcon.png", (error, buffer)=>{
+                            accept(buffer);
+                        })
+                    accept(buffer);
+                });
                 return;
             }
 
@@ -663,27 +626,29 @@ class SpotifyController{
         }
         if (SpotifyController.adjustForSpotifyBug && SpotifyController.previouslyFetchedSpotifyState.timePosition < 3){
             SpotifyController.adjustForSpotifyBug = false;
-            //Spotify is gey and is broken
-            setTimeout(async () => {
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                setTimeout(() => {
-                    SpotifyController.getCurrentSpotifyState(true);
-                }, 100);
-            }, 1000);
+            if (currentMediaSource == "Spotify"){
+                //Spotify is gey and is broken
+                setTimeout(async () => {
+                    SpotifyController.pausePlaySpotify();
+                    await new Promise(accept => {setTimeout(accept, 5)})
+                    SpotifyController.pausePlaySpotify();
+                    await new Promise(accept => {setTimeout(accept, 300)})
+                    SpotifyController.pausePlaySpotify();
+                    await new Promise(accept => {setTimeout(accept, 5)})
+                    SpotifyController.pausePlaySpotify();
+                    await new Promise(accept => {setTimeout(accept, 300)})
+                    SpotifyController.pausePlaySpotify();
+                    await new Promise(accept => {setTimeout(accept, 5)})
+                    SpotifyController.pausePlaySpotify();
+                    await new Promise(accept => {setTimeout(accept, 300)})
+                    SpotifyController.pausePlaySpotify();
+                    await new Promise(accept => {setTimeout(accept, 5)})
+                    SpotifyController.pausePlaySpotify();
+                    setTimeout(() => {
+                        SpotifyController.getCurrentSpotifyState(true);
+                    }, 100);
+                }, 1000);
+            }
         }
     }
 }
