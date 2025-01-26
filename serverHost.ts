@@ -23,7 +23,7 @@ let spotifyInterface: DBusInterface;
 export function connect(){
     return new Promise<void>((accept)=>{
         console.log("Attempting to get interface...");
-        bus.getInterface("org.mpris.MediaPlayer2.playerctld", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
+        bus.getInterface("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
             spotifyInterface = interf;
             console.log("Got interface!");
             accept();
@@ -47,8 +47,6 @@ let currentSpotifyState: SpotifyState = {
     volume: 0
 };
 
-let currentMediaSource: "Spotify" | "Unknown" = "Unknown";
-
 export function pause(){
     spotifyInterface.Pause();
 }
@@ -71,7 +69,7 @@ export function playPause(){
 
 export function seekTrack(position: number){
     fetchCurrentSpotifyState().then(()=>{
-        spotifyInterface.Seek((position - currentSpotifyState.timePosition) * (currentMediaSource == "Spotify" ? 1000000 : 1));
+        spotifyInterface.Seek((position - currentSpotifyState.timePosition) * 1000000);
     })
 }
 
@@ -81,11 +79,7 @@ export function fetchCurrentSpotifyState(){
 
         let completeTask = function(){
             completedTask ++;
-            if (completedTask == 3){
-                if (currentMediaSource == "Spotify"){
-                    currentSpotifyState.timeLength /= 1000000;
-                    currentSpotifyState.timePosition /= 1000000;
-                }
+            if (completedTask == 4){
                 return accept(currentSpotifyState);
             };
         };
@@ -98,7 +92,7 @@ export function fetchCurrentSpotifyState(){
                 playState: false,
                 localTrack: false,
                 timePosition: 0,
-                timeLength: data["mpris:length"],
+                timeLength: data["mpris:length"] / 1000000,
                 artistName: (data["xesam:artist"] as string[]).join(" & "),
                 trackName: data["xesam:title"],
                 artworkURL: data["mpris:artUrl"] || "missing value",
@@ -109,13 +103,11 @@ export function fetchCurrentSpotifyState(){
                 trackNumber: data["xesam:trackNumber"],
                 volume: 0
             };
-
-            currentMediaSource = !currentSpotifyState.spotifyID.match(/spotify/) ? "Unknown" : "Spotify";
         
             spotifyInterface.getProperty("Position", (err, data: any)=>{
                 if (err)
                     console.error(err);
-                currentSpotifyState.timePosition = data;
+                currentSpotifyState.timePosition = data / 1000000;
                 completeTask();
             });
             
@@ -126,12 +118,12 @@ export function fetchCurrentSpotifyState(){
                 completeTask();
             });
             
-            // spotifyInterface.getProperty("Volume", (err, data: any)=>{
-            //     if (err)
-            //         console.error(err);
-            //     currentSpotifyState.volume = data;
-            //     completeTask();
-            // });
+            spotifyInterface.getProperty("Volume", (err, data: any)=>{
+                if (err)
+                    console.error(err);
+                currentSpotifyState.volume = data;
+                completeTask();
+            });
             
             completeTask();
         });
@@ -626,29 +618,27 @@ class SpotifyController{
         }
         if (SpotifyController.adjustForSpotifyBug && SpotifyController.previouslyFetchedSpotifyState.timePosition < 3){
             SpotifyController.adjustForSpotifyBug = false;
-            if (currentMediaSource == "Spotify"){
-                //Spotify is gey and is broken
-                setTimeout(async () => {
-                    SpotifyController.pausePlaySpotify();
-                    await new Promise(accept => {setTimeout(accept, 5)})
-                    SpotifyController.pausePlaySpotify();
-                    await new Promise(accept => {setTimeout(accept, 300)})
-                    SpotifyController.pausePlaySpotify();
-                    await new Promise(accept => {setTimeout(accept, 5)})
-                    SpotifyController.pausePlaySpotify();
-                    await new Promise(accept => {setTimeout(accept, 300)})
-                    SpotifyController.pausePlaySpotify();
-                    await new Promise(accept => {setTimeout(accept, 5)})
-                    SpotifyController.pausePlaySpotify();
-                    await new Promise(accept => {setTimeout(accept, 300)})
-                    SpotifyController.pausePlaySpotify();
-                    await new Promise(accept => {setTimeout(accept, 5)})
-                    SpotifyController.pausePlaySpotify();
-                    setTimeout(() => {
-                        SpotifyController.getCurrentSpotifyState(true);
-                    }, 100);
-                }, 1000);
-            }
+            //Spotify is gey and is broken
+            setTimeout(async () => {
+                SpotifyController.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 5)})
+                SpotifyController.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 300)})
+                SpotifyController.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 5)})
+                SpotifyController.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 300)})
+                SpotifyController.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 5)})
+                SpotifyController.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 300)})
+                SpotifyController.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 5)})
+                SpotifyController.pausePlaySpotify();
+                setTimeout(() => {
+                    SpotifyController.getCurrentSpotifyState(true);
+                }, 100);
+            }, 1000);
         }
     }
 }
