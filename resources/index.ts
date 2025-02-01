@@ -73,6 +73,13 @@ class LyricalPlayer{
 
         let currentTimeIndex = Math.floor((timePosition + 0.5) * this.detailFactor);
         let nearestLyricalLine = jadeLyrics.lyricalLinesTimeReferences[currentTimeIndex];
+
+        let minimumStartIndex = 0;
+
+        while (!nearestLyricalLine){
+            nearestLyricalLine = jadeLyrics.lyricalLinesTimeReferences[currentTimeIndex += 1]
+        }
+        minimumStartIndex = currentTimeIndex;
         
         if (nearestLyricalLine.endTime < timePosition){
             currentTimeIndex ++;
@@ -81,7 +88,8 @@ class LyricalPlayer{
                 currentTimeIndex --;
             }
 
-        currentTimeIndex = Math.min(Math.max(currentTimeIndex, 0), jadeLyrics.lyricalLinesTimeReferences.length-1);
+
+        currentTimeIndex = Math.min(Math.max(currentTimeIndex, minimumStartIndex), jadeLyrics.lyricalLinesTimeReferences.length-1);
 
         let lyricalLine = jadeLyrics.lyricalLinesTimeReferences[currentTimeIndex];
 
