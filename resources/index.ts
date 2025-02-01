@@ -431,6 +431,8 @@ class DrawingRunTime{
     static backgroundColor = new Color(0, 170, 255);
     static foregroundColor = new Color(0, 170, 255);
 
+    static toForegroundColorPallete: Color[] = [];
+    static fromForegroundColorPallete: Color[] = [];
     static foregroundColorPallete: Color[] = [];
 
     static backgroundCanvas = new OffscreenCanvas(1920 / 2, 1080 / 2);
@@ -444,6 +446,10 @@ class DrawingRunTime{
 
         return array;
     })();
+    
+    static getCurrentTime(){
+        return Date.now();
+    }
 
     static previousForegroundColor = new Color(0, 170, 255);
     static previousBackgroundColor = new Color(0, 170, 255);
@@ -469,7 +475,7 @@ class DrawingRunTime{
     static trackSwitchAction: "left" | "right" = "left";
 
     static frameRateHistory: number[] = [];
-    static timeSinceFrameRateSample = Date.now();
+    static timeSinceFrameRateSample = DrawingRunTime.getCurrentTime();
 
     static renderObjects = {
         AlbumCover: {
@@ -542,7 +548,7 @@ class DrawingRunTime{
             progressBar: 0,
             subSecondProgressBar: 0,
             playing: true,
-            timeSinceStateChange: Date.now(),
+            timeSinceStateChange: DrawingRunTime.getCurrentTime(),
             timePositionDragElement: {
                 raw: {
                     x: 0,
@@ -576,8 +582,8 @@ class DrawingRunTime{
             width: 0,
             height: 200,
             enabled: true,
-            timeSinceEnabled: Date.now(),
-            timeSinceAudio: Date.now(),
+            timeSinceEnabled: DrawingRunTime.getCurrentTime(),
+            timeSinceAudio: DrawingRunTime.getCurrentTime(),
             previousAudioSample: [] as number[],
             currentAudioSample: [] as number[],
             rawAudioSample: [] as number[],
@@ -597,7 +603,7 @@ class DrawingRunTime{
     static safariBackgroundColor = new Color(255, 255, 255);
 
     static produceMinuteShakes(index: number){
-        let timeScale = Date.now()  * 128591;
+        let timeScale = DrawingRunTime.getCurrentTime()  * 128591;
         
         return Math.floor(5 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0] || 0, 2) * Math.cos(index + timeScale / 500)
          + 6 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[2] || 0, 2) * Math.cos(index + timeScale / 50)
@@ -608,11 +614,11 @@ class DrawingRunTime{
     static render(){
         let frameInterval = 1000 / DrawingRunTime.frameRate;
 
-        DrawingRunTime.intervalFrameDelay = Date.now() - TimingState.timeSinceLastFrame;
-        TimingState.timeSinceLastFrame = Date.now();
+        DrawingRunTime.intervalFrameDelay = DrawingRunTime.getCurrentTime() - TimingState.timeSinceLastFrame;
+        TimingState.timeSinceLastFrame = DrawingRunTime.getCurrentTime();
         //MATH
 
-        let startCalculationTime = Date.now();
+        let startCalculationTime = DrawingRunTime.getCurrentTime();
 
         let maxWidth = DrawingRunTime.maxWidth;
         let maxHeight = DrawingRunTime.maxHeight;
@@ -627,15 +633,15 @@ class DrawingRunTime{
             if (BackgroundTasks.currentSpotifyState){
                 let currentSpotfiyState = BackgroundTasks.currentSpotifyState;
 
-                currentTimePositionFactor = Math.min(1, (currentSpotfiyState.timePosition + (Date.now() - currentSpotfiyState.timeFeteched) / 1000) / currentSpotfiyState.timeLength);
+                currentTimePositionFactor = Math.min(1, (currentSpotfiyState.timePosition + (DrawingRunTime.getCurrentTime() - currentSpotfiyState.timeFeteched) / 1000) / currentSpotfiyState.timeLength);
             }
         }
 
         {
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceTrackChange) / 2000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceTrackChange) / 5000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
             
-            let timeFactor2 = Math.min(1, (Date.now() - DrawingRunTime.timeSinceSublineChange) / 1500);
+            let timeFactor2 = Math.min(1, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceSublineChange) / 3000);
             let animationFactor2 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor2));
 
             if (DrawingRunTime.showingSubline == false){
@@ -647,11 +653,11 @@ class DrawingRunTime{
             animationFactor2 *= (1 - tPDE.animationFactor);
 
 
-            let actualForegroundColor = ColorMixer.lerp(DrawingRunTime.foregroundColor, DrawingRunTime.backgroundColor, animationFactor2);
-            let actualBackgroundColor = ColorMixer.lerp(DrawingRunTime.backgroundColor, DrawingRunTime.foregroundColor, animationFactor2);
+            let actualForegroundColor = ColorMixer.lerp(DrawingRunTime.foregroundColor, DrawingRunTime.backgroundColor, Math.max(0, Math.min(1, animationFactor2)));
+            let actualBackgroundColor = ColorMixer.lerp(DrawingRunTime.backgroundColor, DrawingRunTime.foregroundColor, Math.max(0, Math.min(1, animationFactor2)));
 
-            let previousForegroundColor = ColorMixer.lerp(DrawingRunTime.previousForegroundColor, DrawingRunTime.previousBackgroundColor, animationFactor2);
-            let previousBackgroundColor = ColorMixer.lerp(DrawingRunTime.previousBackgroundColor, DrawingRunTime.previousForegroundColor, animationFactor2);
+            let previousForegroundColor = ColorMixer.lerp(DrawingRunTime.previousForegroundColor, DrawingRunTime.previousBackgroundColor, Math.max(0, Math.min(1, animationFactor2)));
+            let previousBackgroundColor = ColorMixer.lerp(DrawingRunTime.previousBackgroundColor, DrawingRunTime.previousForegroundColor, Math.max(0, Math.min(1, animationFactor2)));
 
             let previousTextColor = (()=>{
                 let foregroundColor = previousForegroundColor;
@@ -668,7 +674,6 @@ class DrawingRunTime{
                 }
                 return textColor;
             })();
-
             let newTextColor = (()=>{
                 let foregroundColor = actualForegroundColor;
                 let backgroundColor = actualBackgroundColor;
@@ -689,10 +694,16 @@ class DrawingRunTime{
             backgroundColor = ColorMixer.lerp(previousBackgroundColor, actualBackgroundColor, animationFactor);
             foregroundColor = ColorMixer.lerp(previousForegroundColor, actualForegroundColor, animationFactor);
             textColor = ColorMixer.lerp(previousTextColor, newTextColor, animationFactor);
+            
+            for (let i = 0;i<Math.max(DrawingRunTime.fromForegroundColorPallete.length, DrawingRunTime.toForegroundColorPallete.length);i++){
+                DrawingRunTime.foregroundColorPallete[i] = ColorMixer.lerp(
+                    DrawingRunTime.fromForegroundColorPallete[i] || DrawingRunTime.toForegroundColorPallete[i], 
+                    DrawingRunTime.toForegroundColorPallete[i] || DrawingRunTime.fromForegroundColorPallete[i], animationFactor);
+            }
 
             let dftContent = DrawingRunTime.renderObjects.DFTContent;
 
-            let timeFactor3 = Math.min(1, (Date.now() - dftContent.timeSinceAudioSample) / 75);
+            let timeFactor3 = Math.min(1, (DrawingRunTime.getCurrentTime() - dftContent.timeSinceAudioSample) / 75);
             let animationFactor3 = timeFactor3;
             let previousLoudness = dftContent.previousAudioSample[0] || 0;
             let currentLoudness = dftContent.currentAudioSample[0] || 0;
@@ -710,13 +721,13 @@ class DrawingRunTime{
             let aCP = DrawingRunTime.renderObjects.AlbumCover;
             let sCP = DrawingRunTime.renderObjects.SongContent;
             let dCP = DrawingRunTime.renderObjects.DFTContent;
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceDisplayModeChange) / 1000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
-            let timeFactor2 = Math.min(1, (Date.now() - TimingState.timeSinceTrackChange) / 1000);
+            let timeFactor2 = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceTrackChange) / 1000);
             let animationFactor2 = AnimationTween.bounce(AnimationTween.exponential(timeFactor2));
             
-            let timeFactor3 = Math.min(1, (Date.now() - TimingState.timeSinceTrackChange) / 1000);
+            let timeFactor3 = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceTrackChange) / 1000);
             let animationFactor3 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor3));
             
             aCP.imageTransitionFactor = animationFactor3;
@@ -767,7 +778,7 @@ class DrawingRunTime{
                 DrawingRunTime.renderObjects.SongTitle.text = spotifyState.trackName;
             }
 
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceDisplayModeChange) / 1000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
             let animationFactor_2 = AnimationTween.bounce(AnimationTween.jadeTween(AnimationTween.exponential(timeFactor)));
             
@@ -797,11 +808,11 @@ class DrawingRunTime{
             if (titleWidth >= sTP.maxWidth){
                 sTP.scrollDurationMaximum = sTP.textWidth * 12;
 
-                let scrollFactor = (Math.min(1, (Date.now() - sTP.timeSinceScroll )/ sTP.scrollDurationMaximum) % 1);
+                let scrollFactor = (Math.min(1, (DrawingRunTime.getCurrentTime() - sTP.timeSinceScroll )/ sTP.scrollDurationMaximum) % 1);
                 let animationFactor2 = AnimationTween.cos(scrollFactor);
                 sTP.scrollPosition = sTP.textWidth * animationFactor2;
-                if (Date.now() - sTP.timeSinceScroll > sTP.scrollDurationMaximum + 1000){
-                    sTP.timeSinceScroll = Date.now();
+                if (DrawingRunTime.getCurrentTime() - sTP.timeSinceScroll > sTP.scrollDurationMaximum + 1000){
+                    sTP.timeSinceScroll = DrawingRunTime.getCurrentTime();
                 }
             }else{
                 sTP.scrollPosition = 0;
@@ -815,7 +826,7 @@ class DrawingRunTime{
                 DrawingRunTime.renderObjects.SongArtist.text = spotifyState.artistName;
             }
 
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceDisplayModeChange) / 1000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
             let animationFactor_2 = AnimationTween.bounce(AnimationTween.jadeTween(AnimationTween.exponential(timeFactor)));
             
@@ -845,11 +856,11 @@ class DrawingRunTime{
             if (titleWidth >= sTP.maxWidth){
                 sTP.scrollDurationMaximum = sTP.textWidth * 12;
 
-                let scrollFactor = (Math.min(1, (Date.now() - sTP.timeSinceScroll )/ sTP.scrollDurationMaximum) % 1);
+                let scrollFactor = (Math.min(1, (DrawingRunTime.getCurrentTime() - sTP.timeSinceScroll )/ sTP.scrollDurationMaximum) % 1);
                 let animationFactor2 = AnimationTween.cos(scrollFactor);
                 sTP.scrollPosition = sTP.textWidth * animationFactor2;
-                if (Date.now() - sTP.timeSinceScroll > sTP.scrollDurationMaximum + 1000){
-                    sTP.timeSinceScroll = Date.now();
+                if (DrawingRunTime.getCurrentTime() - sTP.timeSinceScroll > sTP.scrollDurationMaximum + 1000){
+                    sTP.timeSinceScroll = DrawingRunTime.getCurrentTime();
                 }
             }else{
                 sTP.scrollPosition = 0;
@@ -857,7 +868,7 @@ class DrawingRunTime{
         }
         {
 
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceDisplayModeChange) / 1000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
             let aCP = DrawingRunTime.renderObjects.AlbumCover;
@@ -875,7 +886,7 @@ class DrawingRunTime{
         }
         {
 
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceDisplayModeChange) / 1000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
             let aCP = DrawingRunTime.renderObjects.AlbumCover;
@@ -885,7 +896,7 @@ class DrawingRunTime{
             let timeSinceJadeLyricsLoaded = TimingState.timeSinceJadeLyricsLoaded;
             let loadedJadeLyrics = BackgroundTasks.jadeLyricsSupported;
 
-            let timeFactor2= Math.min(1, (Date.now() - TimingState.timeSinceJadeLyricsLoaded) / 1000);
+            let timeFactor2= Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceJadeLyricsLoaded) / 1000);
             let animationFactor2 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor2));
 
             if (loadedJadeLyrics){
@@ -903,9 +914,9 @@ class DrawingRunTime{
             if (spotifyState){
                 if (spotifyState.playState){
                     if (dCP.currentAudioSample[0] + dCP.currentAudioSample[25] > 0){
-                        dCP.timeSinceAudio = Date.now();
+                        dCP.timeSinceAudio = DrawingRunTime.getCurrentTime();
                     }
-                    if (Date.now() - dCP.timeSinceAudio > 1000){
+                    if (DrawingRunTime.getCurrentTime() - dCP.timeSinceAudio > 1000){
                         enabled = false;
                     }else
                         enabled = true;
@@ -916,7 +927,7 @@ class DrawingRunTime{
 
             if (dCP.enabled != enabled){
                 dCP.enabled = enabled;
-                dCP.timeSinceEnabled = Date.now();
+                dCP.timeSinceEnabled = DrawingRunTime.getCurrentTime();
             }
 
             let landscapePosition = {
@@ -946,7 +957,7 @@ class DrawingRunTime{
                 DrawingRunTime.renderObjects.SongAlbum.text = spotifyState.albumName;
             }
 
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceDisplayModeChange) / 1000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
             let animationFactor_2 = AnimationTween.bounce(AnimationTween.jadeTween(AnimationTween.exponential(timeFactor)));
             
@@ -976,11 +987,11 @@ class DrawingRunTime{
             if (titleWidth >= sTP.maxWidth){
                 sTP.scrollDurationMaximum = sTP.textWidth * 12;
 
-                let scrollFactor = (Math.min(1, (Date.now() - sTP.timeSinceScroll )/ sTP.scrollDurationMaximum) % 1);
+                let scrollFactor = (Math.min(1, (DrawingRunTime.getCurrentTime() - sTP.timeSinceScroll )/ sTP.scrollDurationMaximum) % 1);
                 let animationFactor2 = AnimationTween.cos(scrollFactor);
                 sTP.scrollPosition = sTP.textWidth * animationFactor2;
-                if (Date.now() - sTP.timeSinceScroll > sTP.scrollDurationMaximum + 1000){
-                    sTP.timeSinceScroll = Date.now();
+                if (DrawingRunTime.getCurrentTime() - sTP.timeSinceScroll > sTP.scrollDurationMaximum + 1000){
+                    sTP.timeSinceScroll = DrawingRunTime.getCurrentTime();
                 }
             }else{
                 sTP.scrollPosition = 0;
@@ -988,7 +999,7 @@ class DrawingRunTime{
         }
         {
 
-            let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceDisplayModeChange) / 1000);
+            let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
             let sCP = DrawingRunTime.renderObjects.SongContent;
@@ -1028,7 +1039,7 @@ class DrawingRunTime{
             let previousTimeString = "N/A";
 
             if (currentSpotifyState){
-                let currentTimePosition = currentSpotifyState.timePosition + (Date.now() - currentSpotifyState.timeFeteched) / 1000;
+                let currentTimePosition = currentSpotifyState.timePosition + (DrawingRunTime.getCurrentTime() - currentSpotifyState.timeFeteched) / 1000;
 
                 if (currentSpotifyState.playState == false){
                     currentTimePosition = currentSpotifyState.timePosition;
@@ -1038,12 +1049,12 @@ class DrawingRunTime{
 
                 if (tPDE.active != tPDE.raw.active){
                     tPDE.active = tPDE.raw.active;
-                    tPDE.timeSinceActive = Date.now();
+                    tPDE.timeSinceActive = DrawingRunTime.getCurrentTime();
                 }
 
                 tPDE.currentTimePositionFactor = Math.max(0, Math.min(1, (tPDE.raw.x - cBP.x) / (cBP.width)));
 
-                let timeFactor = Math.max(0, Math.min(1, (Date.now() - tPDE.timeSinceActive) / 1000));
+                let timeFactor = Math.max(0, Math.min(1, (DrawingRunTime.getCurrentTime() - tPDE.timeSinceActive) / 1000));
                 let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
 
@@ -1097,7 +1108,7 @@ class DrawingRunTime{
             cBP.previousTimeString = previousTimeString;
         }
         {
-            let timeFactor = Math.min(Math.max((Date.now() - DrawingRunTime.timeSinceTrackSwitchAction) / 1500, 0), 1);   
+            let timeFactor = Math.min(Math.max((DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceTrackSwitchAction) / 1500, 0), 1);   
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
             let direction = DrawingRunTime.trackSwitchAction == "left" ? 1 : -1;
@@ -1134,10 +1145,10 @@ class DrawingRunTime{
                 renderProfile.imageRenderStyle = "previous";
             }
 
-            let timeFactor2 = Math.min(Math.max((Date.now() - DrawingRunTime.timeSinceCurrentAction) / 1000, 0), 1);
+            let timeFactor2 = Math.min(Math.max((DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction) / 1000, 0), 1);
             let animationFactor2 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor2));
 
-            let timeFactor3 = Math.min(Math.max((Date.now() - DrawingRunTime.timeSinceCurrentAction - 2000) / 1000, 0), 1);
+            let timeFactor3 = Math.min(Math.max((DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 2000) / 1000, 0), 1);
             let animationFactor3 = 1 - AnimationTween.jadeTween(AnimationTween.exponential(timeFactor3));
 
             let animationFactor4 = animationFactor2 * animationFactor3;
@@ -1149,10 +1160,10 @@ class DrawingRunTime{
             renderProfile.yOffset -= 5 * animationFactor4;
         }
 
-        DrawingRunTime.averageCalculationTime = (DrawingRunTime.averageCalculationTime + Date.now() - startCalculationTime) / 2; 
+        DrawingRunTime.averageCalculationTime = (DrawingRunTime.averageCalculationTime + DrawingRunTime.getCurrentTime() - startCalculationTime) / 2; 
 
         //RENDER
-        let startRenderingTime = Date.now();
+        let startRenderingTime = DrawingRunTime.getCurrentTime();
 
         // context2D.clearRect(0, 0, maxWidth, maxHeight);
         context2D.drawImage(DrawingRunTime.backgroundCanvas, 0, 0, maxWidth, maxHeight);
@@ -1313,11 +1324,11 @@ class DrawingRunTime{
         {
 
             let aCP = DrawingRunTime.renderObjects.AlbumCover;
-            // DrawingRunTime.timeSinceCurrentAction = Date.now() - 500;
-            let timeFactor = Math.min(1, Math.max(0, (Date.now() - DrawingRunTime.timeSinceCurrentAction) / 1000));
+            // DrawingRunTime.timeSinceCurrentAction = DrawingRunTime.getCurrentTime() - 500;
+            let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction) / 1000));
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
             
-            let timeFactor2 = Math.min(1, Math.max(0, (Date.now() - DrawingRunTime.timeSinceCurrentAction - 2000) / 1000));
+            let timeFactor2 = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 2000) / 1000));
             let animationFactor2 = 1 - AnimationTween.jadeTween(AnimationTween.exponential(timeFactor2));
 
             let animationFactor3 = animationFactor * animationFactor2;
@@ -1362,7 +1373,7 @@ class DrawingRunTime{
                 case "Skip Track":
                 case "Previous Track":{
                     context2D.scale(0.75, 0.75);
-                    let timeFactor = Math.min(1, Math.max(0, (Date.now() - DrawingRunTime.timeSinceCurrentAction - 400) / 1000));
+                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 400) / 1000));
                     let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
                     if (DrawingRunTime.currentAction == "Previous Track")
@@ -1430,7 +1441,7 @@ class DrawingRunTime{
                     }
                     let newAnimationKey: ([number, number])[] = [];
 
-                    let timeFactor = Math.min(1, Math.max(0, (Date.now() - DrawingRunTime.timeSinceCurrentAction - 400) / 1000));
+                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 400) / 1000));
                     let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
                     let fromAnimationKey = animationKey.Play;
@@ -1498,7 +1509,7 @@ class DrawingRunTime{
             let timeLength = BackgroundTasks.currentSpotifyState?.timeLength || 100;
             context2D.fillStyle = backgroundColor.toStyle();
 
-            let timeFactor7 = Math.min(1, (Date.now() - TimingState.timeSinceJadeLyricsLoaded) / 1000);
+            let timeFactor7 = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceJadeLyricsLoaded) / 1000);
             let animationFactor7 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor7));
 
             if (BackgroundTasks.jadeLyricsSupported == false)
@@ -1547,12 +1558,12 @@ class DrawingRunTime{
             {
                 context2D.fillStyle = foregroundColor.toStyle();
 
-                let timeFactor = Math.min(1, (Date.now() - cBP.timeSinceLeftBoxShake) / 1000);
+                let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - cBP.timeSinceLeftBoxShake) / 1000);
 
                 if (cBP.timeSinceLeftBoxShake == -1)
                     timeFactor = 1;
 
-                let barX = cBP.x + Math.sin((Date.now() - cBP.timeSinceLeftBoxShake) / 50) * 25 * (1 - timeFactor);
+                let barX = cBP.x + Math.sin((DrawingRunTime.getCurrentTime() - cBP.timeSinceLeftBoxShake) / 50) * 25 * (1 - timeFactor);
 
                 context2D.beginPath();
                 context2D.roundRect(barX, cBP.y - 35, 100, cBP.height, 25);
@@ -1581,7 +1592,7 @@ class DrawingRunTime{
                     context2D.fill();
                 }else{
                     if (cBP.timeSinceLeftBoxShake == -1){
-                        cBP.timeSinceLeftBoxShake = Date.now();
+                        cBP.timeSinceLeftBoxShake = DrawingRunTime.getCurrentTime();
                     }
                 }
                 
@@ -1591,7 +1602,7 @@ class DrawingRunTime{
                     context2D.beginPath();
                     context2D.translate(barX + 100 / 2, cBP.y - 35 + cBP.height / 2);
 
-                    let timeFactor = Math.min(1, (Date.now() - cBP.timeSinceStateChange) / 1000);
+                    let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - cBP.timeSinceStateChange) / 1000);
                     let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
                     if (cBP.playing){
@@ -1729,13 +1740,13 @@ class DrawingRunTime{
                 context2D.roundRect(dftContent.x, dftContent.y, dftContent.width, dftContent.height, 25);
                 context2D.closePath();
 
-                let timeFactor = Math.min(1, (Date.now() - dftContent.timeSinceEnabled) / 1000);
+                let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - dftContent.timeSinceEnabled) / 1000);
                 let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
                 
                 
                 let linearGradient = context2D.createLinearGradient(dftContent.x + dftContent.width * 0.05 + dftContent.width * 1 / 50, 0, dftContent.x + dftContent.width * 0.9, 0);
 
-                let timeFactor3 = Math.min(1, (Date.now() - dftContent.timeSinceAudioSample) / 75);
+                let timeFactor3 = Math.min(1, (DrawingRunTime.getCurrentTime() - dftContent.timeSinceAudioSample) / 75);
                 let animationFactor3 = timeFactor3;
 
                 if (dftContent.enabled == false){
@@ -1792,7 +1803,7 @@ class DrawingRunTime{
                     context2D.fillText(playing ? "No Audio Detected" : "Disabled Automatically", dftContent.x + dftContent.width / 2, dftContent.y + dftContent.height / 2 + 30 + 50 * animationFactor);
                 }
                 
-                if (Date.now() - dftContent.timeSinceAudioSample > 75 && dftContent.samples > 0){
+                if (DrawingRunTime.getCurrentTime() - dftContent.timeSinceAudioSample > 75 && dftContent.samples > 0){
                     for (let i = 0;i<50;i++){
                         dftContent.previousAudioSample[i] = dftContent.currentAudioSample[i];
                     }
@@ -1801,11 +1812,11 @@ class DrawingRunTime{
                     }
                     dftContent.samples = 0;
                     dftContent.rawAudioSample = [];
-                    dftContent.timeSinceAudioSample = Date.now();
+                    dftContent.timeSinceAudioSample = DrawingRunTime.getCurrentTime();
                 }
                 if (animationFactor > 0){
 
-                    let timeFactor3 = Math.min(1, (Date.now() - dftContent.timeSinceAudioSample) / 100);
+                    let timeFactor3 = Math.min(1, (DrawingRunTime.getCurrentTime() - dftContent.timeSinceAudioSample) / 100);
                     let animationFactor3 = AnimationTween.jadeTween(timeFactor3);
 
                     let actualWidth = dftContent.width * 0.9;
@@ -1863,7 +1874,7 @@ class DrawingRunTime{
                     }
                 }
 
-                let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceJadeLyricsLoaded) / 1000);
+                let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceJadeLyricsLoaded) / 1000);
                 let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
 
@@ -1969,7 +1980,7 @@ class DrawingRunTime{
 
                     if (subline != DrawingRunTime.showingSubline){
                         DrawingRunTime.showingSubline = subline;
-                        DrawingRunTime.timeSinceSublineChange = Date.now();
+                        DrawingRunTime.timeSinceSublineChange = DrawingRunTime.getCurrentTime();
                     }
                     for (let line of wrapResults.split(/\n/)){
                         context2D.translate(pinX, pinY);
@@ -2000,12 +2011,12 @@ class DrawingRunTime{
                                 if (wordDuration != DrawingRunTime.currentWordDuration){
                                     DrawingRunTime.previousWordDuration = DrawingRunTime.currentWordDuration;
                                     DrawingRunTime.currentWordDuration = wordDuration;
-                                    DrawingRunTime.timeSinceWordDurationChange = Date.now();
+                                    DrawingRunTime.timeSinceWordDurationChange = DrawingRunTime.getCurrentTime();
                                 }
 
-                                wordDuration = DrawingRunTime.previousWordDuration + (DrawingRunTime.currentWordDuration - DrawingRunTime.previousWordDuration) * Math.min(1, (Date.now() - DrawingRunTime.timeSinceWordDurationChange) / 500);
+                                wordDuration = DrawingRunTime.previousWordDuration + (DrawingRunTime.currentWordDuration - DrawingRunTime.previousWordDuration) * Math.min(1, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceWordDurationChange) / 500);
 
-                                progressionStateNormalized = Math.max(0, Math.min(1, (Date.now() - DrawingRunTime.characterTiming[index - 1]) / (400 + wordDuration)));
+                                progressionStateNormalized = Math.max(0, Math.min(1, (DrawingRunTime.getCurrentTime() - DrawingRunTime.characterTiming[index - 1]) / (400 + wordDuration)));
                                 progressionStateNormalized = AnimationTween.jadeTween(progressionStateNormalized);
                             }
 
@@ -2025,7 +2036,7 @@ class DrawingRunTime{
 
                             if (progressionState >= 1){
                                 if (DrawingRunTime.characterTiming[index - 1] == -1){
-                                    DrawingRunTime.characterTiming[index - 1] = Date.now();
+                                    DrawingRunTime.characterTiming[index - 1] = DrawingRunTime.getCurrentTime();
                                 }
                                 if (progressionStateNormalized >= 1){
                                     renderTextMode = "inactive_after";
@@ -2038,7 +2049,7 @@ class DrawingRunTime{
                                     context2D.fillStyle = ColorMixer.newOpacity(foregroundColor, 0.4 * animationFactor3).toStyle();
                                 }else{
                                     if (DrawingRunTime.characterTiming[index - 1] == -1){
-                                        DrawingRunTime.characterTiming[index - 1] = Date.now();
+                                        DrawingRunTime.characterTiming[index - 1] = DrawingRunTime.getCurrentTime();
                                     }
                                     let linearGradient = context2D.createLinearGradient(-10, 0, characterWidth + 10, 0);
                                     let primaryColor = ColorMixer.newOpacity(ColorMixer.lerp(ColorMixer.lerp(foregroundColor, textColor, .5), foregroundColor, 0.5 * progressionStateNormalized), 1 * animationFactor3).toStyle();
@@ -2055,10 +2066,10 @@ class DrawingRunTime{
                                 context2D.translate(xTranslation, yTranslation);
                                 context2D.rotate(Math.PI / 64 * AnimationTween.bounce(progressionStateNormalized));
                                 let bright = DynamicPrimaryColorEngine.measureRelvance(foregroundColor, backgroundColor) > 0.1;
-                                context2D.shadowBlur = 15 * AnimationTween.bounce(progressionStateNormalized) * (bright ? .5 : 1);
+                                context2D.shadowBlur = 30 * AnimationTween.bounce(progressionStateNormalized) * (bright ? .5 : 1);
                                 context2D.shadowOffsetX = 0;
                                 context2D.shadowOffsetY = 0;
-                                context2D.shadowColor = ColorMixer.newOpacity(foregroundColor,  AnimationTween.bounce(progressionStateNormalized) * (bright ? .75: 1)).toStyle();
+                                context2D.shadowColor = ColorMixer.brighten(ColorMixer.newOpacity(foregroundColor,  AnimationTween.bounce(progressionStateNormalized) * (bright ? .75: 1))).toStyle();
                                 context2D.fillText(character, 6 * AnimationTween.bounce(progressionStateNormalized) * (isSubLine(lyricalState.mainLine) ? -1 : 1), 8 * AnimationTween.bounce(progressionStateNormalized));
                                 context2D.rotate(- Math.PI / 64 * AnimationTween.bounce(progressionStateNormalized));
                                 context2D.translate(-xTranslation, -yTranslation);
@@ -2158,9 +2169,9 @@ class DrawingRunTime{
 
                     if (songContent.showJadeLyrics != animationFactor6 < .5){
                         songContent.showJadeLyrics = animationFactor6 < .5;
-                        songContent.timeSinceJadeLyricsShow = Date.now();
+                        songContent.timeSinceJadeLyricsShow = DrawingRunTime.getCurrentTime();
                     }
-                    let timeFactor6_3 = Math.max(0, Math.min(1, (Date.now() - songContent.timeSinceJadeLyricsShow) / 1000));
+                    let timeFactor6_3 = Math.max(0, Math.min(1, (DrawingRunTime.getCurrentTime() - songContent.timeSinceJadeLyricsShow) / 1000));
                     animationFactor6 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor6_3));
 
                     if (songContent.showJadeLyrics){
@@ -2240,7 +2251,7 @@ class DrawingRunTime{
 
 
             for (let i = 0;i<5;i++){
-                gradient.addColorStop((i / 5 + (Date.now() / 5000)) % 1, (i + 1) % 2 == 0 ? ColorMixer.lerp(backgroundColor, foregroundColor, .5).toStyle() : ColorMixer.lerp(backgroundColor, foregroundColor, .9).toStyle());
+                gradient.addColorStop((i / 5 + (DrawingRunTime.getCurrentTime() / 5000)) % 1, (i + 1) % 2 == 0 ? ColorMixer.lerp(backgroundColor, foregroundColor, .5).toStyle() : ColorMixer.lerp(backgroundColor, foregroundColor, .9).toStyle());
             }
 
             context2D.fillStyle = gradient;
@@ -2288,8 +2299,8 @@ class DrawingRunTime{
             DrawingRunTime.averageFrameRate = DrawingRunTime.averageFrameRate * 0.75 + 1000 / DrawingRunTime.intervalFrameDelay * 0.25;
             context2D.fillText(`FPS: ${Math.round(DrawingRunTime.averageFrameRate)}`, maxWidth - 250, 16);
 
-            if (Date.now() - DrawingRunTime.timeSinceFrameRateSample > 100){
-                DrawingRunTime.timeSinceFrameRateSample = Date.now();
+            if (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceFrameRateSample > 100){
+                DrawingRunTime.timeSinceFrameRateSample = DrawingRunTime.getCurrentTime();
                 DrawingRunTime.frameRateHistory.push(DrawingRunTime.averageFrameRate);
 
                 if (DrawingRunTime.frameRateHistory.length >= 100){
@@ -2336,7 +2347,7 @@ class DrawingRunTime{
             //     let currentSpotifyState = BackgroundTasks.currentSpotifyState;
     
             //     if (currentSpotifyState && BackgroundTasks.currentJadeLyrics){
-            //         let currentTimePosition = currentSpotifyState.timePosition + (Date.now() - currentSpotifyState.timeFeteched) / 1000;
+            //         let currentTimePosition = currentSpotifyState.timePosition + (DrawingRunTime.getCurrentTime() - currentSpotifyState.timeFeteched) / 1000;
             //         let currentTimeIndex = Math.floor((currentTimePosition + 0.5) * 8);
 
             //         let lyricsPortition = BackgroundTasks.currentJadeLyrics.lyricalLinesTimeReferences[currentTimeIndex];
@@ -2429,9 +2440,9 @@ class DrawingRunTime{
                     if (Math.abs(actualSpotifyX - tPDE.previousSpotifyPositionX) > 50){
                         tPDE.anchorSpotifyPositionX = tPDE.previousSpotifyPositionX;
                         tPDE.previousSpotifyPositionX = actualSpotifyX;
-                        tPDE.timeSinceSpotifyTimeChange = Date.now();
+                        tPDE.timeSinceSpotifyTimeChange = DrawingRunTime.getCurrentTime();
                     }
-                    let timeFactor = Math.max(Math.min(1, (Date.now() - tPDE.timeSinceSpotifyTimeChange) / 1000), 0);
+                    let timeFactor = Math.max(Math.min(1, (DrawingRunTime.getCurrentTime() - tPDE.timeSinceSpotifyTimeChange) / 1000), 0);
                     let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
                     actualSpotifyX = tPDE.anchorSpotifyPositionX + (tPDE.previousSpotifyPositionX - tPDE.anchorSpotifyPositionX) * animationFactor;
@@ -2539,7 +2550,7 @@ class DrawingRunTime{
             context2D.textRendering = "optimizeSpeed";
         }
 
-        DrawingRunTime.averageRenderTime = (DrawingRunTime.averageRenderTime + Date.now() - startRenderingTime) / 2;
+        DrawingRunTime.averageRenderTime = (DrawingRunTime.averageRenderTime + DrawingRunTime.getCurrentTime() - startRenderingTime) / 2;
         requestAnimationFrame(DrawingRunTime.render);
     };
 
@@ -2557,7 +2568,7 @@ class DrawingRunTime{
 
         if (DrawingRunTime.displayMode != displayMode){
             DrawingRunTime.displayMode = displayMode;
-            TimingState.timeSinceDisplayModeChange = Date.now();
+            TimingState.timeSinceDisplayModeChange = DrawingRunTime.getCurrentTime();
         }
     }
 
@@ -2593,7 +2604,7 @@ class DrawingRunTime{
         setInterval(()=>{
             samples.push(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0]);
 
-            if (Date.now() - timeSinceVisualizerModeChange > 3000 && samples.length >= 50){
+            if (DrawingRunTime.getCurrentTime() - timeSinceVisualizerModeChange > 3000 && samples.length >= 50){
 
                 let averageLoudness = 0;
 
@@ -2618,7 +2629,7 @@ class DrawingRunTime{
                 if (selectedVisualizerMode != visualizerMode){
                     beforeVisualizerMode = visualizerMode;
                     visualizerMode = selectedVisualizerMode;
-                    timeSinceVisualizerModeChange = Date.now();
+                    timeSinceVisualizerModeChange = DrawingRunTime.getCurrentTime();
                     if (selectedVisualizerMode == 1){
                         threshold = 0.05;
                     }else{
@@ -2648,7 +2659,7 @@ class DrawingRunTime{
             backgroundContext2D.fillRect(0, 0, maxWidth, maxHeight);
 
             {
-                let timeFactor = Math.min(Math.max(0, (Date.now() - timeSinceVisualizerModeChange) / 2000), 1);
+                let timeFactor = Math.min(Math.max(0, (DrawingRunTime.getCurrentTime() - timeSinceVisualizerModeChange) / 2000), 1);
                 let animationFactor = AnimationTween.cos(timeFactor);
                 visualizerModeTween = beforeVisualizerMode + (visualizerMode - beforeVisualizerMode) * animationFactor;
             }
@@ -2664,7 +2675,7 @@ class DrawingRunTime{
 
                     backgroundContext2D.scale(1, 0.5)
                     backgroundContext2D.rotate(Math.PI / 4);
-                    backgroundContext2D.translate(0, -effectiveWidth + 200 * (Date.now() / 1000 % 2));
+                    backgroundContext2D.translate(0, -effectiveWidth + 200 * (DrawingRunTime.getCurrentTime() / 1000 % 2));
                     for (let x = 0;x<effectiveWidth / 50;x++){
                         for (let y = 0;y<effectiveWidth / 50;y++){
                             let index = x + y;
@@ -2684,7 +2695,7 @@ class DrawingRunTime{
                 if (sunnyDayEnabled != 0){
                     for (let i = 0;i<50;i++){
                         let randomRotation = 3 * Math.tan(i / 50 - 0.5) + 0.75 
-                            + Math.sin(Date.now() / 2500) * Math.PI / 50 * (.5 + .75 * DrawingRunTime.bundleRandomness[i + 3]);
+                            + Math.sin(DrawingRunTime.getCurrentTime() / 2500) * Math.PI / 50 * (.5 + .75 * DrawingRunTime.bundleRandomness[i + 3]);
                         let maximumMagnitude = 2 * Math.sqrt(Math.pow(maxWidth, 2) + Math.pow(maxHeight, 2));
                         let toX = Math.cos(randomRotation) * maximumMagnitude;
                         let toY = Math.sin(randomRotation) * maximumMagnitude;
@@ -2702,12 +2713,12 @@ class DrawingRunTime{
                     }
                 }
                 if (cityLightEnabled != 0 ){
-                    let timeFactor = Math.min(1, (Date.now() - TimingState.timeSinceTrackChange) / 1000);
+                    let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceTrackChange) / 1000);
                     let animationFactor = 1 - AnimationTween.bounce(AnimationTween.exponential(timeFactor));
      
                     let dftContent = DrawingRunTime.renderObjects.DFTContent;
     
-                    let timeFactor3 = Math.min(1, (Date.now() - dftContent.timeSinceAudioSample) / 75);
+                    let timeFactor3 = Math.min(1, (DrawingRunTime.getCurrentTime() - dftContent.timeSinceAudioSample) / 75);
                     let animationFactor3 = AnimationTween.simpleExponential(timeFactor3);
                     
                     for (let i = 0;i<75;i++){
@@ -2737,7 +2748,7 @@ class DrawingRunTime{
         
                         let randomColor = DrawingRunTime.foregroundColorPallete[Math.floor(DrawingRunTime.bundleRandomness[i + 2] * DrawingRunTime.foregroundColorPallete.length)];
         
-                        let timeFactor = ((Date.now() + accumulativeValues[i]) / (7000 + 10000 * speedFactor) + transitionInitialFactor) % 1;
+                        let timeFactor = ((DrawingRunTime.getCurrentTime() + accumulativeValues[i]) / (7000 + 10000 * speedFactor) + transitionInitialFactor) % 1;
                         let animationFactor2 = AnimationTween.bounce(timeFactor);
         
                         circleX += timeFactor * 300;
@@ -2786,7 +2797,19 @@ class BackgroundTasks{
 
         let timeSinceProcessingUpdate = 0;
         let userActedTrackSwitch = false;
+        let processingSpotifyState = false;
         let onNewSpotifyState = async (_: any, data: SpotifyState)=>{
+            if (processingSpotifyState){
+                return;
+            }
+
+            let pendingTask = 1;
+            let onCompleteTask = ()=>{
+                pendingTask --;
+                if (pendingTask == 0)
+                    processingSpotifyState = false;
+            }
+            processingSpotifyState = true;
             let controller = transmission.controller!;
             if (!BackgroundTasks.currentSpotifyState){
                 BackgroundTasks.currentSpotifyState = {} as SpotifyState;
@@ -2795,6 +2818,7 @@ class BackgroundTasks{
             data.timeFeteched += BackgroundTasks.averageDelayExperience;
 
             if (BackgroundTasks.currentSpotifyState.artworkURL != data.artworkURL || data.albumName != BackgroundTasks.currentSpotifyState.albumName){
+                pendingTask += 1;
                 await new Promise<void>((accept)=>{
                     controller.sendMessage({
                         messageType: "ObtainSpotifyImage",
@@ -2894,8 +2918,8 @@ class BackgroundTasks{
                                         }
                                     }
                                 }
-                                
-                                DrawingRunTime.foregroundColorPallete = (()=>{
+                                DrawingRunTime.fromForegroundColorPallete = DrawingRunTime.toForegroundColorPallete;
+                                DrawingRunTime.toForegroundColorPallete = (()=>{
                                     let colors: Color[] = [];
 
                                     let i = 0;
@@ -2940,7 +2964,7 @@ class BackgroundTasks{
                                 if (DrawingRunTime.renderObjects.AlbumCover.blurredImage){
                                     DrawingRunTime.renderObjects.AlbumCover.blurredImage.close();
                                 }
-
+                                onCompleteTask();
                                 DrawingRunTime.renderObjects.AlbumCover.previousImage = DrawingRunTime.renderObjects.AlbumCover.image;
                                 DrawingRunTime.renderObjects.AlbumCover.image = processedImage;
                                 accept();
@@ -2966,13 +2990,14 @@ class BackgroundTasks{
             }
             
             if (BackgroundTasks.currentSpotifyState.spotifyID != data.spotifyID){
+                pendingTask += 1;
                 if (userActedTrackSwitch){
                     userActedTrackSwitch = false;
-                    DrawingRunTime.timeSinceTrackSwitchAction = Date.now();
+                    DrawingRunTime.timeSinceTrackSwitchAction = DrawingRunTime.getCurrentTime();
                 }
-                TimingState.timeSinceTrackChange = Date.now();
+                TimingState.timeSinceTrackChange = DrawingRunTime.getCurrentTime();
                 if (BackgroundTasks.jadeLyricsSupported != false){
-                    TimingState.timeSinceJadeLyricsLoaded = Date.now();
+                    TimingState.timeSinceJadeLyricsLoaded = DrawingRunTime.getCurrentTime();
                     BackgroundTasks.jadeLyricsSupported = false;
                 }
 
@@ -2984,7 +3009,7 @@ class BackgroundTasks{
                             return;
     
                         if (DrawingRunTime.showingSubline){
-                            DrawingRunTime.timeSinceSublineChange = Date.now();
+                            DrawingRunTime.timeSinceSublineChange = DrawingRunTime.getCurrentTime();
                             DrawingRunTime.showingSubline = false;
                         }
     
@@ -2997,7 +3022,7 @@ class BackgroundTasks{
                         let hasJadeLyrics = jadeLyrics != null;
                         
                         if (BackgroundTasks.jadeLyricsSupported != hasJadeLyrics){
-                            TimingState.timeSinceJadeLyricsLoaded = Date.now();
+                            TimingState.timeSinceJadeLyricsLoaded = DrawingRunTime.getCurrentTime();
                             BackgroundTasks.jadeLyricsSupported = hasJadeLyrics;
                         }
                         BackgroundTasks.currentJadeLyrics = jadeLyrics;
@@ -3029,15 +3054,17 @@ class BackgroundTasks{
                                 }
                             }
                         }
+                        onCompleteTask();
                     },
                 }, data.trackName, data.albumName, data.artistName, data.spotifyID);
             }
             if (DrawingRunTime.renderObjects.ControlBar.playing != data.playState){
                 DrawingRunTime.renderObjects.ControlBar.playing = data.playState;
-                DrawingRunTime.renderObjects.ControlBar.timeSinceStateChange = Date.now();
+                DrawingRunTime.renderObjects.ControlBar.timeSinceStateChange = DrawingRunTime.getCurrentTime();
             }
 
             BackgroundTasks.currentSpotifyState = data;
+            onCompleteTask();
         }
 
         transmission.on("transmit", ()=>{
@@ -3047,11 +3074,11 @@ class BackgroundTasks{
             //     let dampendedLoudness: number[] = (()=>{let a = [];for (let i = 0;i<100;i++)a.push(0);return a})();
             //     let dampendedSingleLoudness: number = 0;
     
-            //     let timeSinceUpdate = Date.now();
+            //     let timeSinceUpdate = DrawingRunTime.getCurrentTime();
             //     let addedInterval = 0;
             //     let audioListenerInterval = setInterval(() => {
-            //         let interval = Date.now() - timeSinceUpdate;
-            //         timeSinceUpdate = Date.now();
+            //         let interval = DrawingRunTime.getCurrentTime() - timeSinceUpdate;
+            //         timeSinceUpdate = DrawingRunTime.getCurrentTime();
             //         addedInterval += interval;
             //         let requiredInterval = Math.floor(addedInterval / 4) * 4;
 
@@ -3093,7 +3120,7 @@ class BackgroundTasks{
                     callback: onNewSpotifyState
                 })
             };
-            let spotifyStateRetriever = setInterval(updateSpotifyState, 1000);
+            let spotifyStateRetriever = setInterval(updateSpotifyState, 100);
             updateSpotifyState();
 
             transmission.once("close", ()=>{
@@ -3107,7 +3134,7 @@ class BackgroundTasks{
                         messageType: "GetTime",
                         replyType: "feedback",
                         callback: (response, time)=>{
-                            sampledTimes.push([time, Date.now()]);
+                            sampledTimes.push([time, DrawingRunTime.getCurrentTime()]);
                         }
                     })
                     await new Promise<void>((accept)=>setTimeout(accept, 200));
@@ -3139,7 +3166,7 @@ class BackgroundTasks{
             let transmissionController = transmission.controller;
             if (!transmissionController)
                 return;
-            DrawingRunTime.timeSinceCurrentAction = Date.now();
+            DrawingRunTime.timeSinceCurrentAction = DrawingRunTime.getCurrentTime();
             switch(action){
                 case "TogglePlayState":{
                     BackgroundTasks.currentSpotifyState.playState = !BackgroundTasks.currentSpotifyState.playState;
@@ -3228,11 +3255,11 @@ class BackgroundTasks{
                 mouseInterval = setInterval(()=>{
                     let tPDE = cBP.timePositionDragElement;
 
-                    if (Date.now() - cBP.timePositionDragElement.timeSinceActive > 200){
+                    if (DrawingRunTime.getCurrentTime() - cBP.timePositionDragElement.timeSinceActive > 200){
                         let timePosition = Math.min(1, Math.max(0, (cBP.timePositionDragElement.raw.x - cBP.x) / cBP.width)) * BackgroundTasks.currentSpotifyState.timeLength;
                         if (Math.abs(timePosition - BackgroundTasks.currentSpotifyState.timePosition) > 1 &&
-                            (Date.now() - timeSinceCommandSeek) > 500){
-                            timeSinceCommandSeek = Date.now();
+                            (DrawingRunTime.getCurrentTime() - timeSinceCommandSeek) > 500){
+                            timeSinceCommandSeek = DrawingRunTime.getCurrentTime();
                             transmission.controller!.sendMessage({
                                 messageType: "SeekTrack",
                                 replyType: "feedback",
