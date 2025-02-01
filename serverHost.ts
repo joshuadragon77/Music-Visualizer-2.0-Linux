@@ -259,7 +259,6 @@ class JadeLyricsManager{
             }
             FileSystem.readFile(file_path, {encoding: "utf-8"}, (err, va)=>{
 
-                va = va.replace(/е/g, "e");
 
                 if (err){
                     reject(`An error has occured when reading "${file_path}"`);
@@ -270,6 +269,8 @@ class JadeLyricsManager{
                     reject(`This file "${file_path}" is corrupt or is not a Jade Lyrics file!`);
                     return;
                 }
+                
+                va = va.replace(/е/g, "e");
 
                 let properties = va.match(this.jadePropertiesPattern);
 
