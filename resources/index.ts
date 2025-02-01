@@ -78,8 +78,8 @@ class LyricalPlayer{
 
         while (!nearestLyricalLine){
             nearestLyricalLine = jadeLyrics.lyricalLinesTimeReferences[currentTimeIndex += 1]
+            minimumStartIndex = currentTimeIndex;
         }
-        minimumStartIndex = currentTimeIndex;
         
         if (nearestLyricalLine.endTime < timePosition){
             currentTimeIndex ++;
