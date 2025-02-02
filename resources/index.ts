@@ -612,7 +612,6 @@ class DrawingRunTime{
     }
 
     static render(){
-        let frameInterval = 1000 / DrawingRunTime.frameRate;
 
         DrawingRunTime.intervalFrameDelay = DrawingRunTime.getCurrentTime() - TimingState.timeSinceLastFrame;
         TimingState.timeSinceLastFrame = DrawingRunTime.getCurrentTime();
@@ -2260,15 +2259,15 @@ class DrawingRunTime{
 
             context2D.textAlign = "left";
             context2D.textBaseline = "middle";
-            context2D.font = `bold 18px Sauce Code Pro`;
-            context2D.fillText("Music Visualizer 2.0", 85, 16);
+            context2D.font = `bold 20px Sauce Code Pro`;
+            context2D.fillText("Music Visualizer 2.0", 35, 16);
             context2D.font = `bold 15px Sauce Code Pro`;
-            context2D.fillText("by thejades", 320, 16);
+            context2D.fillText("by thejades", 35, 30);
 
             context2D.lineWidth = 3;
 
-            context2D.scale(0.5, 0.5);
-            context2D.translate(150, -1);
+            context2D.scale(0.8, 0.8);
+            context2D.translate(25, -1);
 
             context2D.beginPath();
             context2D.lineJoin = "round";
@@ -2291,19 +2290,16 @@ class DrawingRunTime{
             context2D.lineTo(0, 44);
             context2D.stroke();
 
-            context2D.translate(-150, 1);
-            context2D.scale(1 / 0.5, 1 / 0.5);
+            context2D.translate(-25, 1);
+            context2D.scale(1 / 0.8, 1 / 0.8);
             
-            context2D.fillStyle = foregroundColor.toStyle();
-            context2D.font = `bold 18px Sauce Code Pro`;
-            DrawingRunTime.averageFrameRate = DrawingRunTime.averageFrameRate * 0.75 + 1000 / DrawingRunTime.intervalFrameDelay * 0.25;
-            context2D.fillText(`FPS: ${Math.round(DrawingRunTime.averageFrameRate)}`, maxWidth - 250, 16);
+            DrawingRunTime.averageFrameRate = DrawingRunTime.averageFrameRate * 0.9 + 1000 / Math.max(1, DrawingRunTime.intervalFrameDelay) * 0.1;
 
-            if (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceFrameRateSample > 100){
+            if (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceFrameRateSample > 50){
                 DrawingRunTime.timeSinceFrameRateSample = DrawingRunTime.getCurrentTime();
                 DrawingRunTime.frameRateHistory.push(DrawingRunTime.averageFrameRate);
 
-                if (DrawingRunTime.frameRateHistory.length >= 100){
+                if (DrawingRunTime.frameRateHistory.length >= 50){
                     DrawingRunTime.frameRateHistory.shift();
                 }
             }
@@ -2318,18 +2314,22 @@ class DrawingRunTime{
 
             let x = maxWidth - 150;
             let y = 5;
-            let width = 125;
-            let height = 20;
+            let width = 140;
+            let height = 50;
 
             context2D.beginPath();
             context2D.moveTo(x, y);
             context2D.strokeStyle = foregroundColor.toStyle();
 
+            let maximumHeight = y;
+
             for (let i = 0;i<DrawingRunTime.frameRateHistory.length;i++){
                 let value = DrawingRunTime.frameRateHistory[i];
 
                 let x_i = x + i / (DrawingRunTime.frameRateHistory.length - 1) * width;
-                let y_i = y + height * (1 - (value - minValue) / (maxValue - minValue));
+                let y_i = y + height * ((1 - (value - minValue) / (maxValue - minValue)) * 0.3);
+
+                maximumHeight = Math.max(y_i, maximumHeight);
 
                 context2D.lineTo(x_i, y_i);
             }
@@ -2342,6 +2342,14 @@ class DrawingRunTime{
             gradient_2.addColorStop(.75, ColorMixer.newOpacity(foregroundColor, 0).toStyle());
             context2D.fillStyle = gradient_2;
             context2D.fill();
+
+            context2D.globalCompositeOperation = "xor";
+            context2D.font = `bold 20px Sauce Code Pro`;
+            context2D.textAlign = "center";
+            context2D.textBaseline = "top";
+            context2D.fillText(`FPS: ${Math.round(DrawingRunTime.averageFrameRate)}`, x + width / 2, Math.min(y + height / 2 - 5, maximumHeight + 5));
+            context2D.globalCompositeOperation = "source-over";
+            context2D.fillStyle = backgroundColor.toStyle();
 
             // {
             //     let currentSpotifyState = BackgroundTasks.currentSpotifyState;
@@ -2485,7 +2493,7 @@ class DrawingRunTime{
             // context2D.clip();
         }
 
-        {
+        if (false){
             context2D.textRendering = "geometricPrecision";
             context2D.textAlign = "center";
             context2D.textBaseline = "middle";
