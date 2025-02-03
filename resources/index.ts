@@ -589,6 +589,23 @@ class DrawingRunTime{
             rawAudioSample: [] as number[],
             samples: 0,
             timeSinceAudioSample: 0,
+        },
+        StatusBar:{
+            previousConnected: false,
+            currentConnected: true,
+            previousPingLatency: 200,
+            currentPingLatency: 200,
+
+            pendingConnections: [] as {
+                size: number,
+                latency: number
+                timeSinceAdded: number,
+                transmitType: "Transmit" | "Receive"
+            }[],
+            
+
+            timeSinceUpdate: DrawingRunTime.getCurrentTime(),
+
         }
     }
 
@@ -663,13 +680,13 @@ class DrawingRunTime{
                 let backgroundColor = previousBackgroundColor;
                 let textColor = new Color(255, 255, 255);
                 {
-                    textColor = foregroundColor;
-                    // if (DynamicPrimaryColorEngine.measureRelvance(textColor, backgroundColor) > 0.6)
-                    //     if (DynamicPrimaryColorEngine.measureBrightness(backgroundColor) > 0.5){
-                    //         textColor = new Color(0, 0, 0);
-                    //     }else{
-                    //         textColor = new Color(255, 255, 255);
-                    //     }
+                    // textColor = foregroundColor;
+                    // if (DynamicPrimaryColorEngine.measureRelvance(textColor, backgroundColor) > 0.4)
+                        if (DynamicPrimaryColorEngine.measureBrightness(backgroundColor) > 0.5){
+                            textColor = ColorMixer.darken(ColorMixer.darken(foregroundColor));
+                        }else{
+                            textColor = ColorMixer.brighten(foregroundColor);
+                        }
                 }
                 return textColor;
             })();
@@ -678,13 +695,13 @@ class DrawingRunTime{
                 let backgroundColor = actualBackgroundColor;
                 let textColor = new Color(255, 255, 255);
                 {
-                    textColor = foregroundColor;
-                    // if (DynamicPrimaryColorEngine.measureRelvance(textColor, backgroundColor) > 0.6)
-                    //     if (DynamicPrimaryColorEngine.measureBrightness(backgroundColor) > 0.5){
-                    //         textColor = new Color(0, 0, 0);
-                    //     }else{
-                    //         textColor = new Color(255, 255, 255);
-                    //     }
+                    // textColor = foregroundColor;
+                    // if (DynamicPrimaryColorEngine.measureRelvance(textColor, backgroundColor) > 0.4)
+                        if (DynamicPrimaryColorEngine.measureBrightness(backgroundColor) > 0.5){
+                            textColor = ColorMixer.darken(ColorMixer.darken(foregroundColor));
+                        }else{
+                            textColor = ColorMixer.brighten(foregroundColor);
+                        }
                 }
                 return textColor;
             })();
@@ -692,7 +709,7 @@ class DrawingRunTime{
 
             backgroundColor = ColorMixer.lerp(previousBackgroundColor, actualBackgroundColor, animationFactor);
             foregroundColor = ColorMixer.lerp(previousForegroundColor, actualForegroundColor, animationFactor);
-            textColor = ColorMixer.lerp(previousTextColor, newTextColor, animationFactor);
+            foregroundColor = textColor = ColorMixer.lerp(previousTextColor, newTextColor, animationFactor);
             
             for (let i = 0;i<Math.max(DrawingRunTime.fromForegroundColorPallete.length, DrawingRunTime.toForegroundColorPallete.length);i++){
                 DrawingRunTime.foregroundColorPallete[i] = ColorMixer.lerp(
@@ -1337,12 +1354,15 @@ class DrawingRunTime{
             context2D.beginPath();
 
 
+
             context2D.save();
-            context2D.translate(aCP.x + aCP.width * (0.5 + 0 * (1 - animationFactor3)), aCP.y + aCP.height * (0.5 + 0 * (1 - animationFactor3)));
+            context2D.translate(aCP.x + aCP.width * (0.5 + 0 * (1 - animationFactor3)), aCP.y - 25 + aCP.height * (0.5 + 0 * (1 - animationFactor3)));
             context2D.scale(1.5 - 0.5 * animationFactor3, 1.5 - 0.5 * animationFactor3);
-            context2D.roundRect(-100, -100, 200, 200, 25);
+            context2D.roundRect(-100, -100, 200, 250, 25);
             context2D.scale(0.8, 0.8);
             context2D.closePath();
+
+            context2D.filter = `blur(${8 * (1 - animationFactor3)}px)`;
 
             let opacity = animationFactor3;
 
@@ -1366,17 +1386,23 @@ class DrawingRunTime{
             context2D.shadowOffsetX = 0;
             context2D.shadowOffsetY = 0;
             context2D.shadowColor = Color.immediate(0, 0, 0, 0);
+
+            let shortenText = "";
             
             switch(DrawingRunTime.currentAction){
                 default:  
                 case "Skip Track":
                 case "Previous Track":{
                     context2D.scale(0.75, 0.75);
-                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 400) / 1000));
+                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 600) / 1000));
                     let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
-                    if (DrawingRunTime.currentAction == "Previous Track")
+                    shortenText = "Skip";
+
+                    if (DrawingRunTime.currentAction == "Previous Track"){
+                        shortenText = "Repeat";
                         context2D.scale(-1, 1);
+                    }
                     context2D.lineJoin = "round";
                     context2D.lineWidth = 15;
                     context2D.beginPath();
@@ -1440,12 +1466,14 @@ class DrawingRunTime{
                     }
                     let newAnimationKey: ([number, number])[] = [];
 
-                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 400) / 1000));
+                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 600) / 1000));
                     let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
 
                     let fromAnimationKey = animationKey.Play;
                     let toAnimationKey = animationKey.Pause;
+                    shortenText = "Resume";
                     if (DrawingRunTime.currentAction == "Pause"){
+                        shortenText = "Pause";
                         fromAnimationKey = animationKey.Pause;
                         toAnimationKey = animationKey.Play;
                     }
@@ -1487,7 +1515,7 @@ class DrawingRunTime{
             context2D.font = "900 45px Sauce Code Pro";
             context2D.textAlign = "center";
             context2D.textBaseline = "middle";
-            // context2D.fillText(DrawingRunTime.currentAction.toUpperCase(), 0, 0 + 125);
+            context2D.fillText(shortenText.toUpperCase(), 0, 0 + 125);
 
             context2D.restore();
             
@@ -1850,6 +1878,7 @@ class DrawingRunTime{
                 let dftContent = DrawingRunTime.renderObjects.DFTContent;
                 let currentTimePosition = 0;
                 let lyricalState: LyricalState | undefined = undefined;
+                let futureLyricalState: LyricalState | undefined = undefined;
                 
                 if (BackgroundTasks.currentSpotifyState && BackgroundTasks.currentJadeLyrics){
                     let tPDE = cBP.timePositionDragElement;
@@ -1862,6 +1891,7 @@ class DrawingRunTime{
                         currentTimePosition = BackgroundTasks.currentSpotifyState.timePosition;
                     }
                     lyricalState = LyricalPlayer.getLyricalState(BackgroundTasks.currentJadeLyrics, currentTimePosition);
+                    futureLyricalState = LyricalPlayer.getLyricalState(BackgroundTasks.currentJadeLyrics, currentTimePosition + 1);
                     
                     if (lyricalState.wordStartTime != DrawingRunTime.previousTimingState){
                         DrawingRunTime.previousTimingState = lyricalState.wordStartTime;
@@ -2196,21 +2226,22 @@ class DrawingRunTime{
                     let transformX = 80 * (1 - animationFactor7);
                     let x_1 = songContent.x + songContent.width / 2;
                     let y_1 = songContent.y + songContent.height / 2 + 20 * (1 - animationFactor3);
-                    if (timeFactor6_2 == 0){
-                        let scaleDown = .5 + 0.5 * (1 - animationFactor7);
+                    if (futureLyricalState)
+                        if (timeFactor6_2 == 0){
+                            let scaleDown = .5 + 0.5 * (1 - animationFactor7);
 
-                        context2D.scale(scaleDown, scaleDown);
-                        context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, animationFactor6).toStyle();
-                        context2D.fillText(`${Math.floor(timeTillStart + 1)}`, (x_1 + 80 - transformX) / scaleDown, y_1 / scaleDown);
-                        context2D.scale(1 / scaleDown, 1 / scaleDown);
-                        cBP.extraString = `Lyrics in ${Math.floor(lyricalState.wordStartTime - currentTimePosition)} seconds `;
-                    }else{
-                            if (lyricalState.endOfLyrics && lyricalState.wordEndTime <= currentTimePosition - 4){
-                                cBP.extraString = "";
-                            }else{
-                                cBP.extraString = lyricalState.mainLine;
-                            }
-                    }
+                            context2D.scale(scaleDown, scaleDown);
+                            context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, animationFactor6).toStyle();
+                            context2D.fillText(`${Math.floor(timeTillStart + 1)}`, (x_1 + 80 - transformX) / scaleDown, y_1 / scaleDown);
+                            context2D.scale(1 / scaleDown, 1 / scaleDown);
+                            cBP.extraString = `Lyrics in ${Math.floor(futureLyricalState.wordStartTime - currentTimePosition)} seconds `;
+                        }else{
+                                if (futureLyricalState.endOfLyrics && futureLyricalState.wordEndTime <= currentTimePosition - 4){
+                                    cBP.extraString = "";
+                                }else{
+                                    cBP.extraString = futureLyricalState.mainLine;
+                                }
+                        }
                     {
                         let scaleUp = .5 + 0.5 * animationFactor7 + 2 * animationFactor6_2;
 
@@ -2246,11 +2277,11 @@ class DrawingRunTime{
 
             context2D.fillRect(0, 0, maxWidth, 50);
 
-            let gradient = context2D.createLinearGradient(-300, 0, 600, 0);
+            let gradient = context2D.createLinearGradient(-300, -300, maxWidth + 300, maxWidth + 300);
 
 
-            for (let i = 0;i<5;i++){
-                gradient.addColorStop((i / 5 + (DrawingRunTime.getCurrentTime() / 5000)) % 1, (i + 1) % 2 == 0 ? ColorMixer.lerp(backgroundColor, foregroundColor, .5).toStyle() : ColorMixer.lerp(backgroundColor, foregroundColor, .9).toStyle());
+            for (let i = 0;i<15;i++){
+                gradient.addColorStop((i / 15 + (DrawingRunTime.getCurrentTime() / 10000)) % 1, (i + 1) % 2 == 0 ? ColorMixer.lerp(backgroundColor, foregroundColor, .5).toStyle() : ColorMixer.lerp(backgroundColor, foregroundColor, .9).toStyle());
             }
 
             context2D.fillStyle = gradient;
@@ -2312,44 +2343,117 @@ class DrawingRunTime{
                 minValue = Math.min(value, minValue);
             }
 
-            let x = maxWidth - 150;
+            let x = maxWidth - 110;
             let y = 5;
-            let width = 140;
-            let height = 50;
+            let width = 100;
+            let height = 40;
 
             context2D.beginPath();
             context2D.moveTo(x, y);
             context2D.strokeStyle = foregroundColor.toStyle();
 
-            let maximumHeight = y;
-
             for (let i = 0;i<DrawingRunTime.frameRateHistory.length;i++){
                 let value = DrawingRunTime.frameRateHistory[i];
 
                 let x_i = x + i / (DrawingRunTime.frameRateHistory.length - 1) * width;
-                let y_i = y + height * ((1 - (value - minValue) / (maxValue - minValue)) * 0.3);
-
-                maximumHeight = Math.max(y_i, maximumHeight);
+                let y_i = y + height * ((1 - (value - minValue) / (maxValue - minValue)) * 0.75);
 
                 context2D.lineTo(x_i, y_i);
             }
             context2D.stroke();
+            context2D.globalCompositeOperation = "xor";
             context2D.lineTo(x + width, y + height);
             context2D.lineTo(x, y + height);
             context2D.lineTo(x, y);
             let gradient_2 = context2D.createLinearGradient(0, y, 0, y + height);
             gradient_2.addColorStop(0, foregroundColor.toStyle());
             gradient_2.addColorStop(.75, ColorMixer.newOpacity(foregroundColor, 0).toStyle());
+            context2D.globalAlpha = 0.5;
             context2D.fillStyle = gradient_2;
             context2D.fill();
+            context2D.globalAlpha = 1;
+            context2D.globalCompositeOperation = "source-over";
 
-            context2D.globalCompositeOperation = "xor";
             context2D.font = `bold 20px Sauce Code Pro`;
             context2D.textAlign = "center";
             context2D.textBaseline = "top";
-            context2D.fillText(`FPS: ${Math.round(DrawingRunTime.averageFrameRate)}`, x + width / 2, Math.min(y + height / 2 - 5, maximumHeight + 5));
-            context2D.globalCompositeOperation = "source-over";
-            context2D.fillStyle = backgroundColor.toStyle();
+            context2D.fillStyle = gradient;
+            context2D.fillText(`FPS: ${Math.round(DrawingRunTime.averageFrameRate)}`, x + width / 2, y + 2);
+
+            {
+
+                let transmissionStatus = DrawingRunTime.renderObjects.StatusBar;
+
+                let timeFactor2 = Math.max(0,Math.min(1, (DrawingRunTime.getCurrentTime() - transmissionStatus.timeSinceUpdate) / 1000));
+                let animationFactor2 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor2));
+
+                if (!transmissionStatus.currentConnected){
+                    animationFactor2 = 1 - animationFactor2;
+                }
+
+                let width = 4 + animationFactor2 * (100 - 4);
+                let height = 26;
+
+
+                context2D.font = `bold 12px Sauce Code Pro`;
+                context2D.textAlign = "right";
+                context2D.textBaseline = "bottom";
+                if (transmissionStatus.currentConnected){
+                    context2D.fillText(`${transmissionStatus.currentPingLatency} ms`, x - width, y + height / 2);
+                }else{
+                    context2D.fillText(`Dead x.x`, x - width, y + height / 2);
+                }
+                context2D.textBaseline = "top";
+                if (transmissionStatus.currentConnected){
+                    context2D.fillText(`${Math.round(Math.log10(transmissionStatus.pendingConnections.length) / 3 * 100)}%`, x - width, y + height / 2);
+                }else{
+                    context2D.fillText(`Reconnecting...`, x - width, y + height / 2);
+                }
+    
+                context2D.fillRect(x - width + 2, y + height / 2 - 7, width - 4, 1);
+                context2D.fillRect(x - width + 2, y + height / 2 + 7, width - 4, 1);
+                
+                
+                context2D.save();
+                
+                context2D.beginPath();
+                context2D.rect(x - width + 2, y, width - 4, height);
+                context2D.clip();
+
+                let timeFactor = Math.max(0, Math.min(1, DrawingRunTime.getCurrentTime() / 1000));
+                let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
+
+                let currentPing = (transmissionStatus.currentPingLatency - transmissionStatus.previousPingLatency) * animationFactor + transmissionStatus.previousPingLatency;
+
+                let valueFactor = Math.max(500, (currentPing / 1) * 1000);
+
+                let newArray = [];
+
+                for (let pendingTransmit of transmissionStatus.pendingConnections){
+                    let valueFactor = 2000 + pendingTransmit.latency;
+                    let timeFactor = (DrawingRunTime.getCurrentTime() - pendingTransmit.timeSinceAdded) / valueFactor;
+                    let sizeFactor = Math.max(1, Math.log(pendingTransmit.size) / Math.log(16));
+                    
+                    if (timeFactor < 1){
+                        newArray.push(pendingTransmit);
+                    }
+
+                    context2D.beginPath();
+                    context2D.arc(
+                        x + 10 - (width + 20) * (pendingTransmit.transmitType == "Receive" ? timeFactor : 1 - timeFactor), 
+                        y + height / 2 - 7 * (pendingTransmit.transmitType == "Receive" ? 1 : -1), 
+                        sizeFactor, 
+                        0, 2 * Math.PI, false);
+                    context2D.closePath();
+
+                    context2D.fill();
+                }
+
+                transmissionStatus.pendingConnections = newArray;
+    
+                context2D.restore();
+            }
+            
 
             // {
             //     let currentSpotifyState = BackgroundTasks.currentSpotifyState;
@@ -2806,10 +2910,21 @@ class BackgroundTasks{
         let timeSinceProcessingUpdate = 0;
         let userActedTrackSwitch = false;
         let processingSpotifyState = false;
+
+        let addTransmitStatus = (byteSize: number, transmitType: "Transmit" | "Receive")=>{
+            DrawingRunTime.renderObjects.StatusBar.pendingConnections.push({
+                size: byteSize,
+                latency: transmission.controller?.pingLatency || 1000,
+                timeSinceAdded: DrawingRunTime.getCurrentTime(),
+                transmitType: transmitType
+            });
+        }
+
         let onNewSpotifyState = async (_: any, data: SpotifyState)=>{
             if (processingSpotifyState){
                 return;
             }
+            addTransmitStatus(JadeStruct.toJadeStruct(data).byteLength, "Receive");
 
             let pendingTask = 1;
             let onCompleteTask = ()=>{
@@ -2824,14 +2939,21 @@ class BackgroundTasks{
             }
 
             data.timeFeteched += BackgroundTasks.averageDelayExperience;
+            if (BackgroundTasks.currentSpotifyState.spotifyID != data.spotifyID){
+                DrawingRunTime.fromForegroundColorPallete = DrawingRunTime.toForegroundColorPallete;
+            }
 
             if (BackgroundTasks.currentSpotifyState.artworkURL != data.artworkURL || data.albumName != BackgroundTasks.currentSpotifyState.albumName){
                 pendingTask += 1;
                 await new Promise<void>((accept)=>{
+                    addTransmitStatus(18, "Transmit");
+                    
                     controller.sendMessage({
                         messageType: "ObtainSpotifyImage",
                         replyType: "feedback",
                         callback(response, imageData: string){
+                            addTransmitStatus(imageData.length, "Receive");
+
                             let base64Representation = `data:image/jpeg;base64,${imageData}`;
                             let newImage = new Image();
                             newImage.src = base64Representation;
@@ -2926,7 +3048,6 @@ class BackgroundTasks{
                                         }
                                     }
                                 }
-                                DrawingRunTime.fromForegroundColorPallete = DrawingRunTime.toForegroundColorPallete;
                                 DrawingRunTime.toForegroundColorPallete = (()=>{
                                     let colors: Color[] = [];
 
@@ -3008,11 +3129,13 @@ class BackgroundTasks{
                     TimingState.timeSinceJadeLyricsLoaded = DrawingRunTime.getCurrentTime();
                     BackgroundTasks.jadeLyricsSupported = false;
                 }
+                addTransmitStatus(16, "Transmit");
 
                 controller.sendMessage({
                     messageType: "ObtainJadeLyrics",
                     replyType: "feedback",
                     callback(response, jadeLyrics: JadeLyrics | null){
+
                         if (BackgroundTasks.currentSpotifyState.spotifyID != data.spotifyID)
                             return;
     
@@ -3034,6 +3157,8 @@ class BackgroundTasks{
                             BackgroundTasks.jadeLyricsSupported = hasJadeLyrics;
                         }
                         BackgroundTasks.currentJadeLyrics = jadeLyrics;
+
+                        let byteSize = 0;
                         
                         if (jadeLyrics){
                             BackgroundTasks.renderedJadeLyricsBar = [];
@@ -3047,6 +3172,7 @@ class BackgroundTasks{
                             };
                             let disapparenceThresholdTime = 0;
                             for (let line of jadeLyrics.lyricalLines){
+                                byteSize += line.line.length;
                                 if (disapparenceThresholdTime != line.disapparenceThresholdTime){
                                     let lineStartTime = line.lyricalInstructions[0].time;
                                     let lineEndTime = line.lyricalInstructions[line.lyricalInstructions.length - 1].time;
@@ -3062,6 +3188,7 @@ class BackgroundTasks{
                                 }
                             }
                         }
+                        addTransmitStatus(byteSize, "Receive");
                         onCompleteTask();
                     },
                 }, data.trackName, data.albumName, data.artistName, data.spotifyID);
@@ -3073,6 +3200,10 @@ class BackgroundTasks{
 
             BackgroundTasks.currentSpotifyState = data;
             onCompleteTask();
+            if (!DrawingRunTime.renderObjects.StatusBar.currentConnected){
+                DrawingRunTime.renderObjects.StatusBar.timeSinceUpdate = DrawingRunTime.getCurrentTime();
+                DrawingRunTime.renderObjects.StatusBar.currentConnected = true;
+            }
         }
 
         transmission.on("transmit", ()=>{
@@ -3108,6 +3239,7 @@ class BackgroundTasks{
             //     }, 4);
 
                 controller.listenMessage("DFTResults", (response, data: Buffer_JADEPORTED)=>{
+                    addTransmitStatus(data.byteLength, "Receive");
                     // console.log(data.readUInt8(0));
 
                     // currentLoudness = [];
@@ -3120,24 +3252,34 @@ class BackgroundTasks{
                 });
             }
 
-
             let updateSpotifyState = ()=>{
+                addTransmitStatus(22, "Transmit");
+
                 controller.sendMessage({
                     messageType: "GetCurrentSpotifyState",
                     replyType: "feedback",
                     callback: onNewSpotifyState
                 })
+                DrawingRunTime.renderObjects.StatusBar.previousPingLatency = DrawingRunTime.renderObjects.StatusBar.currentPingLatency;
+                DrawingRunTime.renderObjects.StatusBar.currentPingLatency = controller.pingLatency;
             };
             let spotifyStateRetriever = setInterval(updateSpotifyState, 100);
             updateSpotifyState();
 
             transmission.once("close", ()=>{
                 clearInterval(spotifyStateRetriever);
+                if (DrawingRunTime.renderObjects.StatusBar.currentConnected){
+                    DrawingRunTime.renderObjects.StatusBar.timeSinceUpdate = DrawingRunTime.getCurrentTime();
+                    DrawingRunTime.renderObjects.StatusBar.currentConnected = false;
+                }
             });
+
 
             (async() =>{
                 let sampledTimes: [number, number][] = []
                 for (let i = 0;i<10;i++){
+                    addTransmitStatus(7, "Transmit");
+
                     controller.sendMessage({
                         messageType: "GetTime",
                         replyType: "feedback",
@@ -3183,6 +3325,8 @@ class BackgroundTasks{
                     }else{
                         DrawingRunTime.currentAction = "Pause";
                     }
+                    addTransmitStatus(19, "Transmit");
+
                     transmissionController.sendMessage({
                         replyType: "feedback",
                         messageType: "TogglePlaybackState",
@@ -3191,6 +3335,8 @@ class BackgroundTasks{
                     break;
                 }
                 case "PreviousTrack":{
+                    addTransmitStatus(13, "Transmit");
+
                     DrawingRunTime.currentAction = "Previous Track";
                     transmissionController.sendMessage({
                         replyType: "feedback",
@@ -3202,6 +3348,8 @@ class BackgroundTasks{
                     break;
                 }
                 case "SkipTrack":{
+                    addTransmitStatus(9, "Transmit");
+
                     DrawingRunTime.currentAction = "Skip Track";
                     transmissionController.sendMessage({
                         replyType: "feedback",
@@ -3268,6 +3416,8 @@ class BackgroundTasks{
                         if (Math.abs(timePosition - BackgroundTasks.currentSpotifyState.timePosition) > 1 &&
                             (DrawingRunTime.getCurrentTime() - timeSinceCommandSeek) > 500){
                             timeSinceCommandSeek = DrawingRunTime.getCurrentTime();
+                            addTransmitStatus(9, "Transmit");
+                            
                             transmission.controller!.sendMessage({
                                 messageType: "SeekTrack",
                                 replyType: "feedback",
