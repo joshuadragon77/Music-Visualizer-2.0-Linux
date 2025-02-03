@@ -7,7 +7,7 @@ Above is a demo using the recent release of "playaslaya" from "in the bitterswee
 
 # Music Visualizer 2.0 (Ported for Linux)
 
-Originally a macOS NodeJS application that can be viewed by any web browser. It shows the fourier transform waves of the song, the lyrics and other nice visuals in all CanvasContext2D rendering framework all programmed by me. 
+Originally a macOS NodeJS application that can be viewed by any web browser. It shows the fourier transform waves of the song, the lyrics and other nice visuals in all CanvasContext2D rendering framework all programmed by me (minus the cava part). 
 
 ## Features
 
