@@ -628,6 +628,10 @@ class DrawingRunTime{
             (BackgroundTasks.jadeLyricsSupported ? 0.35 : 1.25);
     }
 
+    static currentTextColor: Color = new Color(255, 255, 255);
+    static previousTextColor: Color = new Color(255, 255, 255);
+    static timeSinceTextColorChange = Date.now();
+
     static render(){
 
         DrawingRunTime.intervalFrameDelay = DrawingRunTime.getCurrentTime() - TimingState.timeSinceLastFrame;
@@ -675,24 +679,10 @@ class DrawingRunTime{
             let previousForegroundColor = ColorMixer.lerp(DrawingRunTime.previousForegroundColor, DrawingRunTime.previousBackgroundColor, Math.max(0, Math.min(1, animationFactor2)));
             let previousBackgroundColor = ColorMixer.lerp(DrawingRunTime.previousBackgroundColor, DrawingRunTime.previousForegroundColor, Math.max(0, Math.min(1, animationFactor2)));
 
-            let previousTextColor = (()=>{
-                let foregroundColor = previousForegroundColor;
-                let backgroundColor = previousBackgroundColor;
-                let textColor = new Color(255, 255, 255);
-                {
-                    // textColor = foregroundColor;
-                    // if (DynamicPrimaryColorEngine.measureRelvance(textColor, backgroundColor) > 0.4)
-                        if (DynamicPrimaryColorEngine.measureBrightness(backgroundColor) > 0.5){
-                            textColor = ColorMixer.darken(ColorMixer.darken(foregroundColor));
-                        }else{
-                            textColor = ColorMixer.brighten(foregroundColor);
-                        }
-                }
-                return textColor;
-            })();
-            let newTextColor = (()=>{
+            let targetTextColor = (()=>{
                 let foregroundColor = actualForegroundColor;
                 let backgroundColor = actualBackgroundColor;
+
                 let textColor = new Color(255, 255, 255);
                 {
                     // textColor = foregroundColor;
@@ -706,10 +696,20 @@ class DrawingRunTime{
                 return textColor;
             })();
 
+            if (DynamicPrimaryColorEngine.measureRelvance(DrawingRunTime.currentTextColor, targetTextColor) < 0.5){
+                DrawingRunTime.previousTextColor = DrawingRunTime.currentTextColor;
+                DrawingRunTime.currentTextColor = targetTextColor;
+                DrawingRunTime.timeSinceTextColorChange = Date.now();
+            }else{
+                DrawingRunTime.currentTextColor = targetTextColor;
+            }
+
+            let timeFactor4 = Math.min(1, (Date.now() - DrawingRunTime.timeSinceTextColorChange) / 1000);
+            let animationFactor4 = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor4));
 
             backgroundColor = ColorMixer.lerp(previousBackgroundColor, actualBackgroundColor, animationFactor);
             foregroundColor = ColorMixer.lerp(previousForegroundColor, actualForegroundColor, animationFactor);
-            foregroundColor = textColor = ColorMixer.lerp(previousTextColor, newTextColor, animationFactor);
+            foregroundColor = textColor = ColorMixer.lerp(DrawingRunTime.previousTextColor, DrawingRunTime.currentTextColor, animationFactor4);
             
             for (let i = 0;i<Math.max(DrawingRunTime.fromForegroundColorPallete.length, DrawingRunTime.toForegroundColorPallete.length);i++){
                 DrawingRunTime.foregroundColorPallete[i] = ColorMixer.lerp(
@@ -1349,176 +1349,175 @@ class DrawingRunTime{
 
             let animationFactor3 = animationFactor * animationFactor2;
 
-
-
-            context2D.beginPath();
-
-
-
-            context2D.save();
-            context2D.translate(aCP.x + aCP.width * (0.5 + 0 * (1 - animationFactor3)), aCP.y - 25 + aCP.height * (0.5 + 0 * (1 - animationFactor3)));
-            context2D.scale(1.5 - 0.5 * animationFactor3, 1.5 - 0.5 * animationFactor3);
-            context2D.roundRect(-100, -100, 200, 250, 25);
-            context2D.scale(0.8, 0.8);
-            context2D.closePath();
-
-            context2D.filter = `blur(${8 * (1 - animationFactor3)}px)`;
-
-            let opacity = animationFactor3;
-
-            context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, 0.5 * opacity).toStyle();
-            context2D.shadowBlur = 15;
-            context2D.shadowOffsetX = -4;
-            context2D.shadowOffsetY = -4;
-            context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.brighten(backgroundColor), opacity).toStyle();
-            context2D.fill();
-            context2D.shadowBlur = 15;
-            context2D.shadowOffsetX = 4;
-            context2D.shadowOffsetY = 4;
-            context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.darken(backgroundColor), opacity).toStyle();
-            context2D.fill();
-
-            context2D.clip();
-
-            context2D.fillStyle = ColorMixer.newOpacity(foregroundColor, opacity).toStyle();
-            context2D.strokeStyle = ColorMixer.newOpacity(foregroundColor, opacity).toStyle();
-            context2D.shadowBlur = 0;
-            context2D.shadowOffsetX = 0;
-            context2D.shadowOffsetY = 0;
-            context2D.shadowColor = Color.immediate(0, 0, 0, 0);
-
-            let shortenText = "";
-            
-            switch(DrawingRunTime.currentAction){
-                default:  
-                case "Skip Track":
-                case "Previous Track":{
-                    context2D.scale(0.75, 0.75);
-                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 600) / 1000));
-                    let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
-
-                    shortenText = "Skip";
-
-                    if (DrawingRunTime.currentAction == "Previous Track"){
-                        shortenText = "Repeat";
-                        context2D.scale(-1, 1);
+            if (animationFactor3 > 0){
+    
+                context2D.beginPath();
+    
+    
+                context2D.save();
+                context2D.translate(aCP.x + aCP.width * (0.5 + 0 * (1 - animationFactor3)), aCP.y - 25 + aCP.height * (0.5 + 0 * (1 - animationFactor3)));
+                context2D.scale(1.5 - 0.5 * animationFactor3, 1.5 - 0.5 * animationFactor3);
+                context2D.roundRect(-100, -100, 200, 250, 25);
+                context2D.scale(0.8, 0.8);
+                context2D.closePath();
+    
+                context2D.filter = `blur(${8 * (1 - animationFactor3)}px)`;
+    
+                let opacity = animationFactor3;
+    
+                context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, 0.5 * opacity).toStyle();
+                context2D.shadowBlur = 15;
+                context2D.shadowOffsetX = -4;
+                context2D.shadowOffsetY = -4;
+                context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.brighten(backgroundColor), opacity).toStyle();
+                context2D.fill();
+                context2D.shadowBlur = 15;
+                context2D.shadowOffsetX = 4;
+                context2D.shadowOffsetY = 4;
+                context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.darken(backgroundColor), opacity).toStyle();
+                context2D.fill();
+    
+                context2D.clip();
+    
+                context2D.fillStyle = ColorMixer.newOpacity(foregroundColor, opacity).toStyle();
+                context2D.strokeStyle = ColorMixer.newOpacity(foregroundColor, opacity).toStyle();
+                context2D.shadowBlur = 0;
+                context2D.shadowOffsetX = 0;
+                context2D.shadowOffsetY = 0;
+                context2D.shadowColor = Color.immediate(0, 0, 0, 0);
+    
+                let shortenText = "";
+                
+                switch(DrawingRunTime.currentAction){
+                    default:  
+                    case "Skip Track":
+                    case "Previous Track":{
+                        context2D.scale(0.75, 0.75);
+                        let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 600) / 1000));
+                        let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
+    
+                        shortenText = "Skip";
+    
+                        if (DrawingRunTime.currentAction == "Previous Track"){
+                            shortenText = "Repeat";
+                            context2D.scale(-1, 1);
+                        }
+                        context2D.lineJoin = "round";
+                        context2D.lineWidth = 15;
+                        context2D.beginPath();
+                        context2D.moveTo(-7 + 132 * animationFactor, 0);
+                        context2D.lineTo(-132 + 132 * animationFactor, -75);
+                        context2D.lineTo(-132 + 132 * animationFactor, 75);
+                        context2D.closePath();
+                        context2D.stroke();
+                        context2D.fill();
+                        
+                        context2D.scale(Math.max(0.1, 1 - animationFactor), Math.max(0.1, 1 - animationFactor));
+                        context2D.beginPath();
+                        context2D.moveTo(132 + 132 * animationFactor, 0);
+                        context2D.lineTo(7 + 132 * animationFactor, -75);
+                        context2D.lineTo(7 + 132 * animationFactor, 75);
+                        context2D.closePath();
+                        context2D.stroke();
+                        context2D.fill();
+                        context2D.scale(1 / Math.max(0.1, 1 - animationFactor), 1 / Math.max(0.1, 1 - animationFactor));
+    
+                        context2D.scale(Math.max(0.1, animationFactor), Math.max(0.1, animationFactor));
+                        context2D.beginPath();
+                        context2D.moveTo(-132 + 132 * animationFactor, 0);
+                        context2D.lineTo(-257 + 132 * animationFactor, -75);
+                        context2D.lineTo(-257 + 132 * animationFactor, 75);
+                        context2D.closePath();
+                        context2D.stroke();
+                        context2D.fill();
+                        context2D.scale(1 / Math.max(0.1, animationFactor), 1 / Math.max(0.1, animationFactor));
+    
+                        if (DrawingRunTime.currentAction == "Previous Track")
+                            context2D.scale(-1, 1);
+    
+                        context2D.scale(1.25, 1.25);
+                        break;
                     }
-                    context2D.lineJoin = "round";
-                    context2D.lineWidth = 15;
-                    context2D.beginPath();
-                    context2D.moveTo(-7 + 132 * animationFactor, 0);
-                    context2D.lineTo(-132 + 132 * animationFactor, -75);
-                    context2D.lineTo(-132 + 132 * animationFactor, 75);
-                    context2D.closePath();
-                    context2D.stroke();
-                    context2D.fill();
-                    
-                    context2D.scale(Math.max(0.1, 1 - animationFactor), Math.max(0.1, 1 - animationFactor));
-                    context2D.beginPath();
-                    context2D.moveTo(132 + 132 * animationFactor, 0);
-                    context2D.lineTo(7 + 132 * animationFactor, -75);
-                    context2D.lineTo(7 + 132 * animationFactor, 75);
-                    context2D.closePath();
-                    context2D.stroke();
-                    context2D.fill();
-                    context2D.scale(1 / Math.max(0.1, 1 - animationFactor), 1 / Math.max(0.1, 1 - animationFactor));
-
-                    context2D.scale(Math.max(0.1, animationFactor), Math.max(0.1, animationFactor));
-                    context2D.beginPath();
-                    context2D.moveTo(-132 + 132 * animationFactor, 0);
-                    context2D.lineTo(-257 + 132 * animationFactor, -75);
-                    context2D.lineTo(-257 + 132 * animationFactor, 75);
-                    context2D.closePath();
-                    context2D.stroke();
-                    context2D.fill();
-                    context2D.scale(1 / Math.max(0.1, animationFactor), 1 / Math.max(0.1, animationFactor));
-
-                    if (DrawingRunTime.currentAction == "Previous Track")
-                        context2D.scale(-1, 1);
-
-                    context2D.scale(1.25, 1.25);
-                    break;
+                    case "Play":
+                    case "Pause":{
+                        context2D.scale(0.8, 0.8);
+                        let animationKey = {
+                            "Play": [
+                                [-75, -75],
+                                [-20, -75],
+                                [-20, 75],
+                                [-75, 75],
+                                [20, -75],
+                                [75, -75],
+                                [75, 75],
+                                [20, 75],
+                            ],
+                            "Pause": [
+                                [-100, -100],
+                                [0, -50],
+                                [0, 50],
+                                [-100, 100],
+                                [0, -50],
+                                [100, 0],
+                                [100, 0],
+                                [0, 50],
+                            ]
+                        }
+                        let newAnimationKey: ([number, number])[] = [];
+    
+                        let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 600) / 1000));
+                        let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
+    
+                        let fromAnimationKey = animationKey.Play;
+                        let toAnimationKey = animationKey.Pause;
+                        shortenText = "Resume";
+                        if (DrawingRunTime.currentAction == "Pause"){
+                            shortenText = "Pause";
+                            fromAnimationKey = animationKey.Pause;
+                            toAnimationKey = animationKey.Play;
+                        }
+    
+                        for (let i = 0;i<8;i++){
+                            newAnimationKey[i] = [
+                                fromAnimationKey[i][0] + (toAnimationKey[i][0] - fromAnimationKey[i][0]) * animationFactor, 
+                                fromAnimationKey[i][1] + (toAnimationKey[i][1] - fromAnimationKey[i][1]) * animationFactor
+                            ]; 
+                        }
+    
+    
+                        context2D.lineJoin = "round";
+                        context2D.lineWidth = 15;
+    
+                        context2D.beginPath();
+                        context2D.moveTo(newAnimationKey[0][0], newAnimationKey[0][1]);
+                        context2D.lineTo(newAnimationKey[1][0], newAnimationKey[1][1]);
+                        context2D.lineTo(newAnimationKey[2][0], newAnimationKey[2][1]);
+                        context2D.lineTo(newAnimationKey[3][0], newAnimationKey[3][1]);
+                        context2D.closePath();
+                        context2D.fill();
+                        context2D.stroke();
+    
+                        context2D.beginPath();
+                        context2D.lineTo(newAnimationKey[4][0], newAnimationKey[4][1]);
+                        context2D.lineTo(newAnimationKey[5][0], newAnimationKey[5][1]);
+                        context2D.lineTo(newAnimationKey[6][0], newAnimationKey[6][1]);
+                        context2D.lineTo(newAnimationKey[7][0], newAnimationKey[7][1]);
+                        context2D.closePath();
+                        context2D.fill();
+                        context2D.stroke();
+                        context2D.scale(1.2, 1.2);
+    
+                        break;
+                    }
                 }
-                case "Play":
-                case "Pause":{
-                    context2D.scale(0.8, 0.8);
-                    let animationKey = {
-                        "Play": [
-                            [-75, -75],
-                            [-20, -75],
-                            [-20, 75],
-                            [-75, 75],
-                            [20, -75],
-                            [75, -75],
-                            [75, 75],
-                            [20, 75],
-                        ],
-                        "Pause": [
-                            [-100, -100],
-                            [0, -50],
-                            [0, 50],
-                            [-100, 100],
-                            [0, -50],
-                            [100, 0],
-                            [100, 0],
-                            [0, 50],
-                        ]
-                    }
-                    let newAnimationKey: ([number, number])[] = [];
-
-                    let timeFactor = Math.min(1, Math.max(0, (DrawingRunTime.getCurrentTime() - DrawingRunTime.timeSinceCurrentAction - 600) / 1000));
-                    let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
-
-                    let fromAnimationKey = animationKey.Play;
-                    let toAnimationKey = animationKey.Pause;
-                    shortenText = "Resume";
-                    if (DrawingRunTime.currentAction == "Pause"){
-                        shortenText = "Pause";
-                        fromAnimationKey = animationKey.Pause;
-                        toAnimationKey = animationKey.Play;
-                    }
-
-                    for (let i = 0;i<8;i++){
-                        newAnimationKey[i] = [
-                            fromAnimationKey[i][0] + (toAnimationKey[i][0] - fromAnimationKey[i][0]) * animationFactor, 
-                            fromAnimationKey[i][1] + (toAnimationKey[i][1] - fromAnimationKey[i][1]) * animationFactor
-                        ]; 
-                    }
-
-
-                    context2D.lineJoin = "round";
-                    context2D.lineWidth = 15;
-
-                    context2D.beginPath();
-                    context2D.moveTo(newAnimationKey[0][0], newAnimationKey[0][1]);
-                    context2D.lineTo(newAnimationKey[1][0], newAnimationKey[1][1]);
-                    context2D.lineTo(newAnimationKey[2][0], newAnimationKey[2][1]);
-                    context2D.lineTo(newAnimationKey[3][0], newAnimationKey[3][1]);
-                    context2D.closePath();
-                    context2D.fill();
-                    context2D.stroke();
-
-                    context2D.beginPath();
-                    context2D.lineTo(newAnimationKey[4][0], newAnimationKey[4][1]);
-                    context2D.lineTo(newAnimationKey[5][0], newAnimationKey[5][1]);
-                    context2D.lineTo(newAnimationKey[6][0], newAnimationKey[6][1]);
-                    context2D.lineTo(newAnimationKey[7][0], newAnimationKey[7][1]);
-                    context2D.closePath();
-                    context2D.fill();
-                    context2D.stroke();
-                    context2D.scale(1.2, 1.2);
-
-                    break;
-                }
+    
+                context2D.font = "900 45px Sauce Code Pro";
+                context2D.textAlign = "center";
+                context2D.textBaseline = "middle";
+                context2D.fillText(shortenText.toUpperCase(), 0, 0 + 125);
+    
+                context2D.restore();
             }
-
-            context2D.font = "900 45px Sauce Code Pro";
-            context2D.textAlign = "center";
-            context2D.textBaseline = "middle";
-            context2D.fillText(shortenText.toUpperCase(), 0, 0 + 125);
-
-            context2D.restore();
-            
         }
 
         {
@@ -1891,7 +1890,7 @@ class DrawingRunTime{
                         currentTimePosition = BackgroundTasks.currentSpotifyState.timePosition;
                     }
                     lyricalState = LyricalPlayer.getLyricalState(BackgroundTasks.currentJadeLyrics, currentTimePosition);
-                    futureLyricalState = LyricalPlayer.getLyricalState(BackgroundTasks.currentJadeLyrics, currentTimePosition + 1);
+                    futureLyricalState = LyricalPlayer.getLyricalState(BackgroundTasks.currentJadeLyrics, currentTimePosition + .5);
                     
                     if (lyricalState.wordStartTime != DrawingRunTime.previousTimingState){
                         DrawingRunTime.previousTimingState = lyricalState.wordStartTime;
@@ -1938,7 +1937,7 @@ class DrawingRunTime{
                 context2D.shadowBlur = 0;
                 context2D.shadowColor = ColorMixer.newOpacity(ColorMixer.darken(backgroundColor), 0).toStyle();
 
-                if (lyricalState){
+                if (lyricalState && futureLyricalState){
 
                     let fontSeperator = 30;
 
@@ -2188,7 +2187,7 @@ class DrawingRunTime{
 
                     context2D.fillStyle = ColorMixer.newOpacity(foregroundColor, 1 - animationFactor3).toStyle();
 
-                    let timeTillStart = Math.max(0, Math.min(10, lyricalState.wordStartTime - currentTimePosition));
+                    let timeTillStart = Math.max(0, Math.min(10, futureLyricalState.wordStartTime - currentTimePosition));
                     let timeFactor6 = Math.max(0, Math.min(1, (currentTimePosition - (lyricalState.wordStartTime - 0.5)) / 1));
                     let timeFactor6_1 = Math.max(0, Math.min(1, (currentTimePosition - (lyricalState.wordStartTime - 10)) / 1));
                     let timeFactor6_2 = Math.max(0, Math.min(1, (currentTimePosition - (lyricalState.wordStartTime - .5)) / 2));
@@ -2226,23 +2225,22 @@ class DrawingRunTime{
                     let transformX = 80 * (1 - animationFactor7);
                     let x_1 = songContent.x + songContent.width / 2;
                     let y_1 = songContent.y + songContent.height / 2 + 20 * (1 - animationFactor3);
-                    if (futureLyricalState)
-                        if (timeFactor6_2 == 0){
-                            let scaleDown = .5 + 0.5 * (1 - animationFactor7);
+                    if (timeFactor6_2 == 0){
+                        let scaleDown = .5 + 0.5 * (1 - animationFactor7);
 
-                            context2D.scale(scaleDown, scaleDown);
-                            context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, animationFactor6).toStyle();
-                            context2D.fillText(`${Math.floor(timeTillStart + 1)}`, (x_1 + 80 - transformX) / scaleDown, y_1 / scaleDown);
-                            context2D.scale(1 / scaleDown, 1 / scaleDown);
-                            cBP.extraString = `Lyrics in ${Math.floor(futureLyricalState.wordStartTime - currentTimePosition)} seconds `;
-                        }else{
-                                if (futureLyricalState.endOfLyrics && futureLyricalState.wordEndTime <= currentTimePosition - 4){
-                                    cBP.extraString = "";
-                                }else{
-                                    cBP.extraString = futureLyricalState.mainLine;
-                                }
-                        }
-                    {
+                        context2D.scale(scaleDown, scaleDown);
+                        context2D.fillStyle = ColorMixer.newOpacity(backgroundColor, animationFactor6).toStyle();
+                        context2D.fillText(`${Math.floor(timeTillStart + 1)}`, (x_1 + 80 - transformX) / scaleDown, y_1 / scaleDown);
+                        context2D.scale(1 / scaleDown, 1 / scaleDown);
+                        cBP.extraString = `Lyrics in ${Math.floor(futureLyricalState.wordStartTime - currentTimePosition)} seconds `;
+                    }else{
+                            if (futureLyricalState.endOfLyrics && futureLyricalState.wordEndTime <= currentTimePosition - 4){
+                                cBP.extraString = "";
+                            }else{
+                                cBP.extraString = futureLyricalState.mainLine;
+                            }
+                    }
+                {
                         let scaleUp = .5 + 0.5 * animationFactor7 + 2 * animationFactor6_2;
 
                         context2D.scale(scaleUp, scaleUp);
