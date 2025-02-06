@@ -1,9 +1,13 @@
-![Demo](https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/swappy-20241018-013259.png?raw=true))
-![Logo](https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/resources/icons/icon.png?raw=true)
+![Demo](https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/Clip.gif?raw=true))
+
+Above is a demo using the recent release of "playaslaya" from "in the bittersweet of time" by Astrale. Check em out here: https://astralemusic.com/ :)
+
+<img width=100px src="https://github.com/joshuadragon77/Music-Visualizer-2.0-Linux/blob/main/resources/icons/icon.png?raw=true">
+
 
 # Music Visualizer 2.0 (Ported for Linux)
 
-Originally a macOS NodeJS application that can be viewed by any web browser. It shows the fourier transform waves of the song, the lyrics and other nice visuals in all CanvasContext2D rendering framework all programmed by me. 
+Originally a macOS NodeJS application that can be viewed by any web browser. It shows the fourier transform waves of the song, the lyrics and other nice visuals in all CanvasContext2D rendering framework all programmed by me (minus the cava part). 
 
 ## Features
 
