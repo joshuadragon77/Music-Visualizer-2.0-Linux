@@ -739,6 +739,7 @@ class DrawingRunTime{
             let dCP = DrawingRunTime.renderObjects.DFTContent;
             let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
+            let animationFactor_2 = AnimationTween.bounce(AnimationTween.jadeTween(AnimationTween.exponential(timeFactor)));
 
             let timeFactor2 = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceTrackChange) / 1000);
             let animationFactor2 = AnimationTween.bounce(AnimationTween.exponential(timeFactor2));
@@ -748,11 +749,11 @@ class DrawingRunTime{
             
             aCP.imageTransitionFactor = animationFactor3;
 
-            let imagePortraitSize = Math.min(maxHeight - maxWidth * 0.125 - 325 - sCP.height - dCP.height - 30, maxWidth * 0.75);
+            let imagePortraitSize = Math.min(maxHeight - maxWidth * 0.125 - 250 - sCP.height - dCP.height - 30, maxWidth * 0.75);
 
             let landscapePosition = {
                 x: maxWidth / 2 - imagePortraitSize / 2,
-                y: maxWidth * 0.125 + 50,
+                y: 75,
                 width: imagePortraitSize,
                 height: imagePortraitSize
             }
@@ -761,13 +762,13 @@ class DrawingRunTime{
 
             let portraitPosition = {
                 x: maxWidth * 0.1,
-                y: (maxHeight - 400) / 2  - sCP.height / 2 - 15,
+                y: (maxHeight - 400) / 2  - sCP.height / 2,
                 width: 400,
                 height: 400
             };
 
-            aCP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Landscape" ?  1 - animationFactor : animationFactor);
-            aCP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Landscape" ?  1 - animationFactor : animationFactor);
+            aCP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Landscape" ?  1 - animationFactor : animationFactor) - 100 * animationFactor_2;
+            aCP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Landscape" ?  1 - animationFactor : animationFactor) - 100 * animationFactor_2;
             aCP.width = portraitPosition.width + (landscapePosition.width - portraitPosition.width) * (DrawingRunTime.displayMode == "Landscape" ?  1 - animationFactor : animationFactor);
             aCP.height = portraitPosition.height + (landscapePosition.height - portraitPosition.height) * (DrawingRunTime.displayMode == "Landscape" ?  1 - animationFactor : animationFactor);
 
@@ -816,8 +817,8 @@ class DrawingRunTime{
                 maxWidth: maxWidth * 0.9
             }
 
-            sTP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor) + 250 * animationFactor_2;
-            sTP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor);
+            sTP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor) + 300 * animationFactor_2;
+            sTP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor) + 100 * animationFactor_2;
             sTP.maxWidth = Math.max(1, portraitPosition.maxWidth + (landscapePosition.maxWidth - portraitPosition.maxWidth) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor));
             sTP.textWidth = titleWidth + 50;
 
@@ -860,12 +861,12 @@ class DrawingRunTime{
 
             let portraitPosition = {
                 x: Math.max(maxWidth * 0.1 / 2, aCP.x + aCP.width / 2 - titleWidth / 2),
-                y: aCP.y + aCP.height + 55,
+                y: aCP.y + aCP.height + 80,
                 maxWidth: maxWidth * 0.9
             }
 
-            sTP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor) + 250 * animationFactor_2;
-            sTP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor);
+            sTP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor) + 300 * animationFactor_2;
+            sTP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor)  + 100 * animationFactor_2;
             sTP.maxWidth = Math.max(1, portraitPosition.maxWidth + (landscapePosition.maxWidth - portraitPosition.maxWidth) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor));
             sTP.textWidth = titleWidth + 50;
 
@@ -904,6 +905,7 @@ class DrawingRunTime{
 
             let timeFactor = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceDisplayModeChange) / 1000);
             let animationFactor = AnimationTween.jadeTween(AnimationTween.exponential(timeFactor));
+            let animationFactor_2 = AnimationTween.bounce(AnimationTween.jadeTween(AnimationTween.exponential(timeFactor)));
 
             let aCP = DrawingRunTime.renderObjects.AlbumCover;
             let dCP = DrawingRunTime.renderObjects.DFTContent;
@@ -950,18 +952,18 @@ class DrawingRunTime{
                 x: 15 + aCP.x + aCP.width,
                 y: aCP.height + aCP.y - dCP.height,
                 width: Math.min(1000, maxWidth * 0.9 - dCP.x),
-                height: 175,
+                height: 200,
             }
             
             let portraitPosition = {
                 x: maxWidth * 0.1,
                 y: aCP.y + aCP.height + 15 + 125,
                 width: maxWidth * 0.8,
-                height: 125 + 50 * animationFactor2,
+                height: 150 + 50 * animationFactor2,
             }
             
-            dCP.y = landscapePosition.y + (portraitPosition.y - landscapePosition.y) * animationFactor;
-            dCP.x = landscapePosition.x + (portraitPosition.x - landscapePosition.x) * animationFactor;
+            dCP.y = landscapePosition.y + (portraitPosition.y - landscapePosition.y) * animationFactor  + 100 * animationFactor_2;
+            dCP.x = landscapePosition.x + (portraitPosition.x - landscapePosition.x) * animationFactor + 300 * animationFactor_2;
             dCP.width = landscapePosition.width + (portraitPosition.width - landscapePosition.width) * animationFactor;
             dCP.height = landscapePosition.height + (portraitPosition.height - landscapePosition.height) * animationFactor;
         }
@@ -991,12 +993,12 @@ class DrawingRunTime{
 
             let portraitPosition = {
                 x: Math.max(maxWidth * 0.1 / 2, aCP.x + aCP.width / 2 - titleWidth / 2),
-                y: aCP.y + aCP.height + 90,
+                y: aCP.y + aCP.height + 50,
                 maxWidth: maxWidth * 0.9
             }
 
-            sTP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor) + 250 * animationFactor_2;
-            sTP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor);
+            sTP.x = portraitPosition.x + (landscapePosition.x - portraitPosition.x) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor) + 300 * animationFactor_2;
+            sTP.y = portraitPosition.y + (landscapePosition.y - portraitPosition.y) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor)  + 100 * animationFactor_2;
             sTP.maxWidth = Math.max(1, portraitPosition.maxWidth + (landscapePosition.maxWidth - portraitPosition.maxWidth) * (DrawingRunTime.displayMode == "Portrait" ?  1 - animationFactor : animationFactor));
             sTP.textWidth = titleWidth + 50;
 
