@@ -620,26 +620,26 @@ class SpotifyController{
         if (SpotifyController.adjustForSpotifyBug && SpotifyController.previouslyFetchedSpotifyState.timePosition < 3){
             SpotifyController.adjustForSpotifyBug = false;
             //Spotify is gey and is broken
-            setTimeout(async () => {
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                setTimeout(() => {
-                    SpotifyController.getCurrentSpotifyState(true);
-                }, 100);
-            }, 1000);
+            // setTimeout(async () => {
+            //     SpotifyController.pausePlaySpotify();
+            //     await new Promise(accept => {setTimeout(accept, 5)})
+            //     SpotifyController.pausePlaySpotify();
+            //     await new Promise(accept => {setTimeout(accept, 300)})
+            //     SpotifyController.pausePlaySpotify();
+            //     await new Promise(accept => {setTimeout(accept, 5)})
+            //     SpotifyController.pausePlaySpotify();
+            //     await new Promise(accept => {setTimeout(accept, 300)})
+            //     SpotifyController.pausePlaySpotify();
+            //     await new Promise(accept => {setTimeout(accept, 5)})
+            //     SpotifyController.pausePlaySpotify();
+            //     await new Promise(accept => {setTimeout(accept, 300)})
+            //     SpotifyController.pausePlaySpotify();
+            //     await new Promise(accept => {setTimeout(accept, 5)})
+            //     SpotifyController.pausePlaySpotify();
+            //     setTimeout(() => {
+            //         SpotifyController.getCurrentSpotifyState(true);
+            //     }, 100);
+            // }, 1000);
         }
     }
 }
