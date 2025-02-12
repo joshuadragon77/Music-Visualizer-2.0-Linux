@@ -9,6 +9,8 @@ Above is a demo using the recent release of "playaslaya" from "in the bitterswee
 
 Originally a macOS NodeJS application that can be viewed by any web browser. It shows the fourier transform waves of the song, the lyrics and other nice visuals in all CanvasContext2D rendering framework all programmed by me (minus the cava part). 
 
+made out of the fact i might have adhd and i just love smooth visuals being generated with my favourite music. :) soo udderly distracting.
+
 ## Features
 
 - It uses the binary execute cava to get audio input from alsa and gets its fourier transform data to display to the visualizer.
