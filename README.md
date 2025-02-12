@@ -7,13 +7,15 @@ Above is a demo using the recent release of "playaslaya" from "in the bitterswee
 
 # Music Visualizer 2.0 (Ported for Linux)
 
-Originally a macOS NodeJS application that can be viewed by any web browser. It shows the fourier transform waves of the song, the lyrics and other nice visuals in all CanvasContext2D rendering framework all programmed by me (minus the cava part). 
+Originally a macOS NodeJS application that can be viewed by any web browser. It shows the fourier transform waves of the song, the lyrics and other nice visuals in all CanvasContext2D rendering framework all programmed by me.
+
+was using cava as the fourier transform backend, but got my own java backend (JadeDFTEngine) to work now. This one is more designed to capture bass drops and is the same on i used on my macbook. :)
 
 made out of the fact i might have adhd and i just love smooth visuals being generated with my favourite music. :) soo udderly distracting.
 
 ## Features
 
-- It uses the binary execute cava to get audio input from alsa and gets its fourier transform data to display to the visualizer.
+- It uses the Java Executable JadeDFTEngine to get audio input from alsa and gets its fourier transform data to display to the visualizer.
 - Uses my own Lyrics File called "Jade Lyrics" which store the lyrics of a song and how it should be displayed in a timely fashion, down to the words.
 - Features "Dynamic Colours" which is a simple machine learnt algorithm that picks the right colour out of the album image and uses it customize the looks of the visualizer
 - Spotify Audio Control through DBUS. You can go to the previous song, next song, pause/play the song and seek song all through the web app.
@@ -37,7 +39,7 @@ You might need easyeffect delay by +200ms to compensate for the audio visualizin
 ## Story
 
 It was originally intended for macOS and uses Apple Script to interface with the Spotify App. 
-It also originally used my own DFT engine java executable than cava to perform discrete fourirer transform on the input audio. 
+It uses my own DFT engine java executable called the JadeDftEngine to perform discrete fourirer transform on the input audio. 
 
 The other versions utilized native Java entirely and AJK Render Engine which was developed by me and my high school friends. :)
 
