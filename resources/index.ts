@@ -2787,7 +2787,7 @@ class DrawingRunTime{
 
                     backgroundContext2D.scale(1, 0.5)
                     backgroundContext2D.rotate(Math.PI / 4);
-                    backgroundContext2D.translate(0, -effectiveWidth + 200 * (DrawingRunTime.getCurrentTime() / 1000 % 2));
+                    backgroundContext2D.translate(0, -effectiveWidth + 200 * (DrawingRunTime.getCurrentTime() / 500 % 2));
                     for (let x = 0;x<effectiveWidth / 50;x++){
                         for (let y = 0;y<effectiveWidth / 50;y++){
                             let index = x + y;

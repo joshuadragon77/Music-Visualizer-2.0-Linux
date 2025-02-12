@@ -168,7 +168,7 @@ class AudioListener{
     static startAudioListening(){
         if (AudioListener.audioListenerProcess)
             return;
-        let currentAudioStream = ChildProcess.spawn("cava", ["-p", "cava.config"]);//ChildProcess.spawn("java", ["--enable-preview", "-jar", "AudioListener.jar"]);
+        let currentAudioStream = ChildProcess.spawn("java", ["-jar", "DFTEngine.jar"]);//ChildProcess.spawn("cava", ["-p", "cava.config"]);//ChildProcess.spawn("java", ["--enable-preview", "-jar", "AudioListener.jar"]);
         setInterval(()=>{
             let dataLength = 100;
             let data = currentAudioStream.stdout.read(dataLength);
