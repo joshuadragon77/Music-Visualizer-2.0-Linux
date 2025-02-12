@@ -620,9 +620,9 @@ class DrawingRunTime{
     static safariBackgroundColor = new Color(255, 255, 255);
 
     static produceMinuteShakes(index: number){
-        let timeScale = DrawingRunTime.getCurrentTime()  * 128591;
+        let timeScale = Date.now() * 128591;
         
-        return Math.floor(5 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0] || 0, 2) * Math.cos(index + timeScale / 500)
+        return Math.floor(8 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0] || 0, 2) * Math.cos(index + timeScale / 500)
          + 6 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[2] || 0, 2) * Math.cos(index + timeScale / 50)
          + 3 * Math.pow(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[5] || 0, 2) * Math.cos(index + timeScale / 250)) * 
             (BackgroundTasks.jadeLyricsSupported ? 0.35 : 1.25);
@@ -2716,7 +2716,7 @@ class DrawingRunTime{
         setInterval(()=>{
             samples.push(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0]);
 
-            if (DrawingRunTime.getCurrentTime() - timeSinceVisualizerModeChange > 3000 && samples.length >= 50){
+            if (Date.now() - timeSinceVisualizerModeChange > 3000 && samples.length >= 30){
 
                 let averageLoudness = 0;
 
@@ -2741,9 +2741,9 @@ class DrawingRunTime{
                 if (selectedVisualizerMode != visualizerMode){
                     beforeVisualizerMode = visualizerMode;
                     visualizerMode = selectedVisualizerMode;
-                    timeSinceVisualizerModeChange = DrawingRunTime.getCurrentTime();
+                    timeSinceVisualizerModeChange = Date.now();
                     if (selectedVisualizerMode == 1){
-                        threshold = 0.05;
+                        threshold = 0.1;
                     }else{
                         threshold = 0.5;
                     }
