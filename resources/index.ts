@@ -1883,7 +1883,7 @@ class DrawingRunTime{
                 
                 if (BackgroundTasks.currentSpotifyState && BackgroundTasks.currentJadeLyrics){
                     let tPDE = cBP.timePositionDragElement;
-                    currentTimePosition = tPDE.currentTimePosition;// + .1;//- 0.05;//- .05;
+                    currentTimePosition = tPDE.currentTimePosition - 0.25;// + .1;//- 0.05;//- .05;
 
                     // if (dftContent.enabled == false){
                     //     currentTimePosition += 0.24;
