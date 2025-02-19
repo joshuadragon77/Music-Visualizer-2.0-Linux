@@ -749,7 +749,7 @@ class DrawingRunTime{
             
             aCP.imageTransitionFactor = animationFactor3;
 
-            let imagePortraitSize = Math.min(maxHeight - maxWidth * 0.125 - 250 - sCP.height - dCP.height - 30, maxWidth * 0.75);
+            let imagePortraitSize = Math.min(maxHeight - 350 - sCP.height - dCP.height - 30, maxWidth * 0.75);
 
             let landscapePosition = {
                 x: maxWidth / 2 - imagePortraitSize / 2,
@@ -1883,7 +1883,7 @@ class DrawingRunTime{
                 
                 if (BackgroundTasks.currentSpotifyState && BackgroundTasks.currentJadeLyrics){
                     let tPDE = cBP.timePositionDragElement;
-                    currentTimePosition = tPDE.currentTimePosition - 0.25;// + .1;//- 0.05;//- .05;
+                    currentTimePosition = tPDE.currentTimePosition - .1;// + .1;//- 0.05;//- .05;
 
                     // if (dftContent.enabled == false){
                     //     currentTimePosition += 0.24;
