@@ -14,125 +14,128 @@ import { JadeStruct } from "./modules/jadestruct.js";
 
 import { DBusInterface, getBus, registerService } from "dbus";
 
-const bus = getBus("session");
+// const bus = getBus("session");
 
 // registerService("session", "dev.jades.MusicVisualizer2-0");
 
-let spotifyInterface: DBusInterface;
+// let spotifyInterface: DBusInterface;
 
-export function connect(){
-    return new Promise<void>((accept)=>{
-        console.log("Attempting to get interface...");
-        bus.getInterface("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
-            spotifyInterface = interf;
-            console.log("Got interface!");
-            accept();
-        });
-    });
-}
+// export function connect(){
+//     return new Promise<void>((accept)=>{
+//         console.log("Attempting to get interface...");
+//         bus.getInterface("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
+//             spotifyInterface = interf;
+//             console.log("Got interface!");
+//             accept();
+//         });
+//     });
+// }
 
-let currentSpotifyState: SpotifyState = {
-    playState: false,
-    localTrack: false,
-    timePosition: 0,
-    timeLength: 0,
-    artistName: "",
-    trackName: "",
-    artworkURL: "",
-    spotifyID: "",
-    albumName: "",
-    timeFeteched: 0,
-    popularity: 0,
-    trackNumber: 0,
-    volume: 0
-};
+// let currentSpotifyState: SpotifyState = {
+//     playState: false,
+//     localTrack: false,
+//     timePosition: 0,
+//     timeLength: 0,
+//     artistName: "",
+//     trackName: "",
+//     artworkURL: "",
+//     spotifyID: "",
+//     albumName: "",
+//     timeFeteched: 0,
+//     popularity: 0,
+//     trackNumber: 0,
+//     volume: 0
+// };
 
-export function pause(){
-    spotifyInterface.Pause();
-}
+// export function pause(){
+//     spotifyInterface.Pause();
+// }
 
-export function play(){
-    spotifyInterface.Play();
-}
+// export function play(){
+//     spotifyInterface.Play();
+// }
 
-export function nextTrack(){
-    spotifyInterface.Next();
-}
+// export function nextTrack(){
+//     spotifyInterface.Next();
+// }
 
-export function previousTrack(){
-    spotifyInterface.Previous();
-}
+// export function previousTrack(){
+//     spotifyInterface.Previous();
+// }
 
-export function playPause(){
-    spotifyInterface.PlayPause();
-}
+// export function playPause(){
+//     spotifyInterface.PlayPause();
+// }
 
-export function seekTrack(position: number){
-    fetchCurrentSpotifyState().then(()=>{
-        spotifyInterface.Seek((position - currentSpotifyState.timePosition) * 1000000);
-    })
-}
+// export function seekTrack(position: number){
+//     fetchCurrentSpotifyState().then(()=>{
+//         spotifyInterface.Seek((position - currentSpotifyState.timePosition) * 1000000);
+//     })
+// }
 
-export function fetchCurrentSpotifyState(){
-    return new Promise<SpotifyState>((accept)=>{
-        let completedTask = 0;
+// export function fetchCurrentSpotifyState(){
+//     return new Promise<SpotifyState>((accept, reject)=>{
+//         let completedTask = 0;
 
-        let completeTask = function(){
-            completedTask ++;
-            if (completedTask == 4){
-                return accept(currentSpotifyState);
-            };
-        };
+//         let completeTask = function(){
+//             completedTask ++;
+//             if (completedTask == 4){
+//                 return accept(currentSpotifyState);
+//             };
+//         };
 
-        spotifyInterface.getProperty("Metadata", (err, data: any)=>{
-            if (err)
-                console.error(err);
+//         spotifyInterface.getProperty("Metadata", (err, data: any)=>{
+//             if (err){
+//                 console.warn(`Trying to fetch from DBUS to Spotify but failed with: ${err.message}`);
+//                 // console.error(err);
+//                 return reject(err);
+//             }
 
-            currentSpotifyState = {
-                playState: false,
-                localTrack: false,
-                timePosition: 0,
-                timeLength: data["mpris:length"] / 1000000,
-                artistName: (data["xesam:artist"] as string[]).join(" & "),
-                trackName: data["xesam:title"],
-                artworkURL: data["mpris:artUrl"] || "missing value",
-                spotifyID: data["mpris:trackid"],
-                albumName: data["xesam:album"],
-                timeFeteched: Date.now(),
-                popularity: data["xesam:autoRating"],
-                trackNumber: data["xesam:trackNumber"],
-                volume: 0
-            };
+//             currentSpotifyState = {
+//                 playState: false,
+//                 localTrack: false,
+//                 timePosition: 0,
+//                 timeLength: data["mpris:length"] / 1000000,
+//                 artistName: (data["xesam:artist"] as string[]).join(" & "),
+//                 trackName: data["xesam:title"],
+//                 artworkURL: data["mpris:artUrl"] || "missing value",
+//                 spotifyID: data["mpris:trackid"],
+//                 albumName: data["xesam:album"],
+//                 timeFeteched: Date.now(),
+//                 popularity: data["xesam:autoRating"],
+//                 trackNumber: data["xesam:trackNumber"],
+//                 volume: 0
+//             };
         
-            spotifyInterface.getProperty("Position", (err, data: any)=>{
-                if (err)
-                    console.error(err);
-                currentSpotifyState.timePosition = data / 1000000;
-                completeTask();
-            });
+//             spotifyInterface.getProperty("Position", (err, data: any)=>{
+//                 if (err)
+//                     console.error(err);
+//                 currentSpotifyState.timePosition = data / 1000000;
+//                 completeTask();
+//             });
             
-            spotifyInterface.getProperty("PlaybackStatus", (err, data: any)=>{
-                if (err)
-                    console.error(err);
-                currentSpotifyState.playState = data == "Playing";
-                completeTask();
-            });
+//             spotifyInterface.getProperty("PlaybackStatus", (err, data: any)=>{
+//                 if (err)
+//                     console.error(err);
+//                 currentSpotifyState.playState = data == "Playing";
+//                 completeTask();
+//             });
             
-            spotifyInterface.getProperty("Volume", (err, data: any)=>{
-                if (err)
-                    console.error(err);
-                currentSpotifyState.volume = data;
-                completeTask();
-            });
+//             spotifyInterface.getProperty("Volume", (err, data: any)=>{
+//                 if (err)
+//                     console.error(err);
+//                 currentSpotifyState.volume = data;
+//                 completeTask();
+//             });
             
-            completeTask();
-        });
-    });
-}
+//             completeTask();
+//         });
+//     });
+// }
 
 
 
-connect();
+// connect();
 
 
 
@@ -310,7 +313,6 @@ class JadeLyricsManager{
 
                 let disappearenceIndex = 0;
                 let justAddedNewLine = false;
-                currentSpotifyState
                 let lyricalWords = va.match(new RegExp(this.jadeLyricsPattern, "g"));
                 if (lyricalWords == null){
                     reject(null);
@@ -539,110 +541,426 @@ class StoringSystem{
     }
 }
 
-class SpotifyController{
+class SpotifyControllerv2{
 
-    static fetchingSpotifyState = false;
+    static currentState: "Playing" | "Played" | "Pausing" | "Paused" | "Transitioning" | "TransitionRepairing" | "Transitioned" | "TransitionCleaning" = "Paused";
+
+    static currentFetchSpotifyState: SpotifyState | null = null;
     static timeSinceSpotifyStateFetch = 0;
+    static fetchingSpotifyState = false;
 
-    static adjustForSpotifyBug = false;
-    static spotifyExperiencingBugs = false;
+    static spotifyInterface: DBusInterface;
+    
+    static spotifyResynced = false;
+    static transitionFromFetchSpotifyState: SpotifyState | null = null;
 
-    static previouslyFetchedSpotifyState?: SpotifyState;
+    static estimateTimePosition(spotifyState: SpotifyState, overflowProtect = true){
+        if (overflowProtect){
+            return Math.min(spotifyState.timeLength, spotifyState.timePosition + (Date.now() - spotifyState.timeFeteched) / 1000);
+        }else{
+            return spotifyState.timePosition + (Date.now() - spotifyState.timeFeteched) / 1000;
+        }
+    }
 
-    static getCurrentSpotifyState(override = false){
+    static processStateMachine(){
+
+        let currentSpotifyState = SpotifyControllerv2.currentFetchSpotifyState;
+        let outputSpotifyState: SpotifyState;
+        
+        if (currentSpotifyState == null){
+            SpotifyControllerv2.currentState = "Paused";
+            return;
+        }
+
+        let estimatedTimePosition = SpotifyControllerv2.estimateTimePosition(currentSpotifyState);
+
+        switch(SpotifyControllerv2.currentState){
+            case "Playing":{
+                AudioListener.startAudioListening();
+                SpotifyControllerv2.currentState = "Played";
+            }
+            case "Played":{
+                if (currentSpotifyState.playState == false){
+                    SpotifyControllerv2.currentState = "Pausing";
+                }
+                if (currentSpotifyState.timeLength > 5 && estimatedTimePosition > currentSpotifyState.timeLength - 3){
+                    SpotifyControllerv2.currentState = "Transitioning";
+                    SpotifyControllerv2.transitionFromFetchSpotifyState = SpotifyControllerv2.currentFetchSpotifyState;
+                }
+
+                outputSpotifyState = currentSpotifyState!;
+                break;
+            }
+            case "Pausing":{
+                AudioListener.stopAudioListening();
+                SpotifyControllerv2.currentState = "Paused";
+            }
+            case "Paused":{
+                if (currentSpotifyState.playState){
+                    SpotifyControllerv2.currentState = "Playing";
+                }
+
+                outputSpotifyState = currentSpotifyState!;
+                break;
+            }
+            case "Transitioning":{
+                if (estimatedTimePosition < 2){
+                    SpotifyControllerv2.currentState = "TransitionRepairing";
+                }
+
+                outputSpotifyState = SpotifyControllerv2.transitionFromFetchSpotifyState!;
+                break;
+            }
+            case "TransitionRepairing":{
+                SpotifyControllerv2.resyncSpotifyPlayback();
+                SpotifyControllerv2.currentState = "Transitioned";
+
+                outputSpotifyState = SpotifyControllerv2.transitionFromFetchSpotifyState!;
+                break;
+            }
+            case "Transitioned":{
+                let transitionedFromFetchSpotify = SpotifyControllerv2.transitionFromFetchSpotifyState!;
+
+                let previousMediaEstimatedTimePosition = SpotifyControllerv2.estimateTimePosition(transitionedFromFetchSpotify!);
+
+                if (previousMediaEstimatedTimePosition >= transitionedFromFetchSpotify.timeLength){
+                    SpotifyControllerv2.currentState = "TransitionCleaning";
+                }
+
+                outputSpotifyState = SpotifyControllerv2.transitionFromFetchSpotifyState!;
+                break;
+            }
+            case "TransitionCleaning":{
+                let transitionedFromFetchSpotify = SpotifyControllerv2.transitionFromFetchSpotifyState!;
+                
+                if (SpotifyControllerv2.spotifyResynced == false){
+                    SpotifyControllerv2.currentState = "Played";
+                }
+
+                outputSpotifyState = currentSpotifyState!;
+                outputSpotifyState.playState = true;
+                outputSpotifyState.timePosition = SpotifyControllerv2.estimateTimePosition(transitionedFromFetchSpotify, false) - transitionedFromFetchSpotify.timeLength;
+                outputSpotifyState.timeFeteched = Date.now();
+            }
+        }
+
+        return outputSpotifyState!;
+    }
+
+    static getCurrentSpotifyState(override: boolean = false){
         return new Promise<SpotifyState>((accept, reject)=>{
-            if (Date.now() - SpotifyController.timeSinceSpotifyStateFetch > 50 || override){
-                SpotifyController.timeSinceSpotifyStateFetch = Date.now();
-                SpotifyController.fetchCurrentSpotifyState().then((spotifyState)=>{
-                    accept(SpotifyController.previouslyFetchedSpotifyState = spotifyState);
-                    SpotifyController.checkForSpotifyBug();
+
+            let onFetchCallback = ()=>{
+                let currentSpotifyState = SpotifyControllerv2.processStateMachine();
+                if (currentSpotifyState){
+                    accept(currentSpotifyState);
+                }else{
+                    console.warn("Spotify State Machine returned an invalid state.");
+                    reject();
+                }
+            };
+
+            if (Date.now() - SpotifyControllerv2.timeSinceSpotifyStateFetch > 50 || override){
+                SpotifyControllerv2.timeSinceSpotifyStateFetch = Date.now();
+                SpotifyControllerv2.fetchCurrentSpotifyState().then((spotifyState)=>{
+                    SpotifyControllerv2.currentFetchSpotifyState = spotifyState;
+                    onFetchCallback();
                 }).catch((err)=>{
-                    accept(SpotifyController.previouslyFetchedSpotifyState!);
+                    onFetchCallback();
                 });
             }else{
-                accept(SpotifyController.previouslyFetchedSpotifyState!);
+                onFetchCallback();
             }
+        });
+    }
+
+    static fetchCurrentSpotifyState(){
+        return new Promise<SpotifyState>((accept, reject)=>{
+            if (SpotifyControllerv2.fetchingSpotifyState){
+                return reject("Cannot fetch state when already fetching...");
+            }
+            SpotifyControllerv2.fetchingSpotifyState = true;
+                
+            SpotifyControllerv2.dbusFetchCurrentSpotifyState().then((newSpotifyState)=>{
+                SpotifyControllerv2.fetchingSpotifyState = false;
+                StoringSystem.obtainSpotifyImage(newSpotifyState.artworkURL, newSpotifyState.trackName).then(()=>{
+                    accept(newSpotifyState);
+                });
+            }).catch((er)=>{
+                SpotifyControllerv2.fetchingSpotifyState = false;
+                return reject("Unknown failure to fetch current spotify state.");
+            });
+        });
+    }
+
+    static resyncSpotifyPlayback(){
+        SpotifyControllerv2.spotifyResynced = true;
+        setTimeout(async () => {
+            for (let i = 0;i<3;i++){
+                SpotifyControllerv2.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 5)})
+                SpotifyControllerv2.pausePlaySpotify();
+                await new Promise(accept => {setTimeout(accept, 500)})
+            }
+            setTimeout(() => {
+                SpotifyControllerv2.getCurrentSpotifyState(true);
+                SpotifyControllerv2.spotifyResynced = false;
+            }, 100);
+        }, 1000);
+    };
+
+    static dbusFetchCurrentSpotifyState(){
+        return new Promise<SpotifyState>((accept, reject)=>{
+            let completedTask = 0;
+    
+            let currentSpotifyState: SpotifyState = {
+                playState: false,
+                localTrack: false,
+                timePosition: 0,
+                timeLength: 0,
+                artistName: "",
+                trackName: "",
+                artworkURL: "",
+                spotifyID: "",
+                albumName: "",
+                timeFeteched: 0,
+                popularity: 0,
+                trackNumber: 0,
+                volume: 0
+            };
+
+            let completeTask = function(){
+                completedTask ++;
+                if (completedTask == 4){
+                    return accept(currentSpotifyState);
+                };
+            };
+    
+            SpotifyControllerv2.spotifyInterface.getProperty("Metadata", (err, data: any)=>{
+                if (err){
+                    console.warn(`Trying to fetch from DBUS to Spotify but failed with: ${err.message}`);
+                    // console.error(err);
+                    return reject(err);
+                }
+    
+                currentSpotifyState = {
+                    playState: false,
+                    localTrack: false,
+                    timePosition: 0,
+                    timeLength: data["mpris:length"] / 1000000,
+                    artistName: (data["xesam:artist"] as string[]).join(" & "),
+                    trackName: data["xesam:title"],
+                    artworkURL: data["mpris:artUrl"] || "missing value",
+                    spotifyID: data["mpris:trackid"],
+                    albumName: data["xesam:album"],
+                    timeFeteched: Date.now(),
+                    popularity: data["xesam:autoRating"],
+                    trackNumber: data["xesam:trackNumber"],
+                    volume: 0
+                };
+            
+                SpotifyControllerv2.spotifyInterface.getProperty("Position", (err, data: any)=>{
+                    if (err)
+                        console.error(err);
+                    currentSpotifyState.timePosition = data / 1000000;
+                    completeTask();
+                });
+                
+                SpotifyControllerv2.spotifyInterface.getProperty("PlaybackStatus", (err, data: any)=>{
+                    if (err)
+                        console.error(err);
+                    currentSpotifyState.playState = data == "Playing";
+                    completeTask();
+                });
+                
+                SpotifyControllerv2.spotifyInterface.getProperty("Volume", (err, data: any)=>{
+                    if (err)
+                        console.error(err);
+                    currentSpotifyState.volume = data;
+                    completeTask();
+                });
+                
+                completeTask();
+            });
         });
     }
 
     static pausePlaySpotify(){
         return new Promise<void>((accept, reject)=>{
-            playPause();
+            SpotifyControllerv2.playPause();
             accept();
         });
     }
-    static previousTrack(){
-        return new Promise<void>((accept, reject)=>{
-            previousTrack();
+
+    static pause(){
+        return new Promise<void>((accept)=>{
+            SpotifyControllerv2.spotifyInterface.Pause();
             accept();
-        });
+        })
     }
+    
+    static play(){
+        return new Promise<void>((accept)=>{
+        SpotifyControllerv2.spotifyInterface.Play();
+        accept();
+    })
+    }
+    
     static nextTrack(){
-        return new Promise<void>((accept, reject)=>{
-            nextTrack();
-            accept();
-        });
+        return new Promise<void>((accept)=>{
+        SpotifyControllerv2.spotifyInterface.Next();
+        accept();
+    })
     }
+    
+    static previousTrack(){
+        return new Promise<void>((accept)=>{
+        SpotifyControllerv2.spotifyInterface.Previous();
+        accept();
+    })
+    }
+    
+    static playPause(){
+        return new Promise<void>((accept)=>{
+        SpotifyControllerv2.spotifyInterface.PlayPause();
+        accept();
+    })
+    }
+    
     static seekTrack(position: number){
-        return new Promise<void>((accept, reject)=>{
-            seekTrack(position);
-            accept();
-        });
+        return new Promise<void>((accept)=>{
+        let estimatedTimePosition = SpotifyControllerv2.estimateTimePosition(SpotifyControllerv2.currentFetchSpotifyState!);
+        SpotifyControllerv2.spotifyInterface.Seek((position - estimatedTimePosition) * 1000000);
+        accept();
+    })
     }
-    static fetchCurrentSpotifyState(){
-        return new Promise<SpotifyState>((accept, reject)=>{
-            if (SpotifyController.fetchingSpotifyState){
-                return reject("Cannot fetch state when already fetching...");
-            }
-            SpotifyController.fetchingSpotifyState = true;
-                
-            fetchCurrentSpotifyState().then((newSpotifyState)=>{
-                SpotifyController.fetchingSpotifyState = false;
-                if (newSpotifyState.playState){
-                    AudioListener.startAudioListening();
-                }else{
-                    AudioListener.stopAudioListening();
-                }
-                StoringSystem.obtainSpotifyImage(newSpotifyState.artworkURL, newSpotifyState.trackName).then(()=>{
-                    accept(newSpotifyState);
-                });
+    
+
+    static init(){
+        let bus = getBus("session");
+
+        return new Promise<void>((accept)=>{
+            console.log("Attempting to get interface...");
+            bus.getInterface("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
+                SpotifyControllerv2.spotifyInterface = interf;
+                console.log("Got interface!");
+                accept();
             });
         });
     }
-    
-    static checkForSpotifyBug(){
-        if (SpotifyController.previouslyFetchedSpotifyState == null)
-            return;
-        
-        if (SpotifyController.previouslyFetchedSpotifyState.timePosition > SpotifyController.previouslyFetchedSpotifyState.timeLength - 3){
-            SpotifyController.adjustForSpotifyBug = true;
-        }
-        if (SpotifyController.adjustForSpotifyBug && SpotifyController.previouslyFetchedSpotifyState.timePosition < 3){
-            SpotifyController.adjustForSpotifyBug = false;
-            //Spotify is gey and is broken
-            setTimeout(async () => {
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 300)})
-                SpotifyController.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyController.pausePlaySpotify();
-                setTimeout(() => {
-                    SpotifyController.getCurrentSpotifyState(true);
-                }, 100);
-            }, 1000);
-        }
-    }
 }
+
+// class SpotifyController{
+
+//     static fetchingSpotifyState = false;
+//     static timeSinceSpotifyStateFetch = 0;
+
+//     static adjustForSpotifyBug = false;
+//     static spotifyExperiencingBugs = false;
+
+//     static previouslyFetchedSpotifyState?: SpotifyState;
+
+//     static determineApproximateTimePosition(spotifyState: SpotifyState){
+//         return spotifyState.timePosition + (Date.now() - spotifyState.timeFeteched) / 1000;
+//     }
+
+//     static getCurrentSpotifyState(override = false){
+//         return new Promise<SpotifyState>((accept, reject)=>{
+//             if (Date.now() - SpotifyController.timeSinceSpotifyStateFetch > 50 || override){
+//                 SpotifyController.timeSinceSpotifyStateFetch = Date.now();
+//                 SpotifyController.fetchCurrentSpotifyState().then((spotifyState)=>{
+//                     accept(SpotifyController.previouslyFetchedSpotifyState = spotifyState);
+//                     SpotifyController.checkForSpotifyBug();
+//                 }).catch((err)=>{
+//                     accept(SpotifyController.previouslyFetchedSpotifyState!);
+//                 });
+//             }else{
+//                 accept(SpotifyController.previouslyFetchedSpotifyState!);
+//             }
+//         });
+//     }
+
+//     static pausePlaySpotify(){
+//         return new Promise<void>((accept, reject)=>{
+//             playPause();
+//             accept();
+//         });
+//     }
+//     static previousTrack(){
+//         return new Promise<void>((accept, reject)=>{
+//             previousTrack();
+//             accept();
+//         });
+//     }
+//     static nextTrack(){
+//         return new Promise<void>((accept, reject)=>{
+//             nextTrack();
+//             accept();
+//         });
+//     }
+//     static seekTrack(position: number){
+//         return new Promise<void>((accept, reject)=>{
+//             seekTrack(position);
+//             accept();
+//         });
+//     }
+//     static fetchCurrentSpotifyState(){
+//         return new Promise<SpotifyState>((accept, reject)=>{
+//             if (SpotifyController.fetchingSpotifyState){
+//                 return reject("Cannot fetch state when already fetching...");
+//             }
+//             SpotifyController.fetchingSpotifyState = true;
+                
+//             fetchCurrentSpotifyState().then((newSpotifyState)=>{
+//                 SpotifyController.fetchingSpotifyState = false;
+//                 if (newSpotifyState.playState){
+//                     AudioListener.startAudioListening();
+//                 }else{
+//                     AudioListener.stopAudioListening();
+//                 }
+//                 StoringSystem.obtainSpotifyImage(newSpotifyState.artworkURL, newSpotifyState.trackName).then(()=>{
+//                     accept(newSpotifyState);
+//                 });
+//             }).catch((er)=>{
+//                 SpotifyController.fetchingSpotifyState = false;
+//                 return reject("Unknown failure to fetch current spotify state.");
+//             });
+//         });
+//     }
+    
+//     static checkForSpotifyBug(){
+//         if (SpotifyController.previouslyFetchedSpotifyState == null)
+//             return;
+        
+//         if (SpotifyController.previouslyFetchedSpotifyState.timePosition > SpotifyController.previouslyFetchedSpotifyState.timeLength - 3 && SpotifyController.previouslyFetchedSpotifyState.timeLength >= 5){
+//             SpotifyController.adjustForSpotifyBug = true;
+//         }
+//         if (SpotifyController.adjustForSpotifyBug && SpotifyController.previouslyFetchedSpotifyState.timePosition < 3){
+//             SpotifyController.adjustForSpotifyBug = false;
+//             //Spotify is gey and is broken
+//             setTimeout(async () => {
+//                 SpotifyController.pausePlaySpotify();
+//                 await new Promise(accept => {setTimeout(accept, 5)})
+//                 SpotifyController.pausePlaySpotify();
+//                 await new Promise(accept => {setTimeout(accept, 300)})
+//                 SpotifyController.pausePlaySpotify();
+//                 await new Promise(accept => {setTimeout(accept, 5)})
+//                 SpotifyController.pausePlaySpotify();
+//                 await new Promise(accept => {setTimeout(accept, 300)})
+//                 SpotifyController.pausePlaySpotify();
+//                 await new Promise(accept => {setTimeout(accept, 5)})
+//                 SpotifyController.pausePlaySpotify();
+//                 await new Promise(accept => {setTimeout(accept, 300)})
+//                 SpotifyController.pausePlaySpotify();
+//                 await new Promise(accept => {setTimeout(accept, 5)})
+//                 SpotifyController.pausePlaySpotify();
+//                 setTimeout(() => {
+//                     SpotifyController.getCurrentSpotifyState(true);
+//                 }, 100);
+//             }, 1000);
+//         }
+//     }
+// }
 
 function main(){
     const expressServer = Express();
@@ -657,10 +975,11 @@ function main(){
 
     expressServer.use("/", Express.static("./resources"));
 
+    let musicController = SpotifyControllerv2;
+
     transmissionServer.addEventListener("transmit", (transmission)=>{
         let controller = transmission.controller!;
 
-        let musicController = SpotifyController;
 
         controller.listenMessage("GetCurrentSpotifyState", (request)=>{
             musicController.getCurrentSpotifyState().then((state)=>{
@@ -739,12 +1058,14 @@ function main(){
 export async function start(){
     // FileSystem.mkdirSync("./stores");
     console.log("Connecting to Spotify DBUS");
-    await connect();
+    // await connect();
     console.log("Loading Images...");
     await StoringSystem.database.open();
     console.log("Opened Image Database..., Loading Images...");
     StoringSystem.init();
     console.log("Loading Modules...");
+    await SpotifyControllerv2.init();
+    console.log("Loading Spotify Controller...");
     await attemptLoadModule();
     console.log("Loading Jade Lyrics...");
     await JadeLyricsManager.init();

@@ -1057,7 +1057,7 @@ class DrawingRunTime{
             let previousTimeString = "N/A";
 
             if (currentSpotifyState){
-                let currentTimePosition = currentSpotifyState.timePosition + (DrawingRunTime.getCurrentTime() - currentSpotifyState.timeFeteched) / 1000;
+                let currentTimePosition = Math.min(currentSpotifyState.timeLength, currentSpotifyState.timePosition + (DrawingRunTime.getCurrentTime() - currentSpotifyState.timeFeteched) / 1000);
 
                 if (currentSpotifyState.playState == false){
                     currentTimePosition = currentSpotifyState.timePosition;
@@ -1093,7 +1093,8 @@ class DrawingRunTime{
                 transitionTimeFactor = currentTimePosition % 1;
                 let transitionAnimationFactor = AnimationTween.jadeTween(AnimationTween.exponential(transitionTimeFactor));
 
-                progressBar = (flooredTimePosition + transitionAnimationFactor) / currentSpotifyState.timeLength;
+                // TODO: Make animation pleasant
+                progressBar = Math.min(1, (flooredTimePosition + transitionAnimationFactor) / currentSpotifyState.timeLength);
 
                 if (tPDE.active == false){
                     timeString = cBP.currentExtraString + Formatters.toTime(currentTimePosition);
@@ -1565,6 +1566,7 @@ class DrawingRunTime{
             context2D.save();
             context2D.clip();
             
+            // TODO: make the transition pleasant here.
             for (let lineProgression of BackgroundTasks.renderedJadeLyricsBar){
                 let x = (cBP.width - 10) * lineProgression.start / timeLength;
                 let width = (cBP.width - 10) * (lineProgression.end - lineProgression.start) / timeLength;
@@ -3250,6 +3252,7 @@ class BackgroundTasks{
                     }
                     DrawingRunTime.renderObjects.DFTContent.samples += 1;
                 });
+                processingSpotifyState = false;
             }
 
             let updateSpotifyState = ()=>{
@@ -3395,38 +3398,41 @@ class BackgroundTasks{
         let cBP = DrawingRunTime.renderObjects.ControlBar;
         let timeSinceCommandSeek = 0;
 
-        let mouseInterval: NodeJS.Timeout;
+        let mouseInterval: NodeJS.Timeout | null;
 
         canvas.addEventListener("mousedown", (event)=>{
-            if (event.x > cBP.x && event.x < cBP.x + cBP.width &&
-                event.y > cBP.y && event.y < cBP.y + cBP.height){
-                
+            if (event.button == 0)
+                if (event.x > cBP.x && event.x < cBP.x + cBP.width &&
+                    event.y > cBP.y && event.y < cBP.y + cBP.height){
+                    
 
-                cBP.timePositionDragElement.raw.active = true;
-                cBP.timePositionDragElement.raw.x = event.x;
-                cBP.timePositionDragElement.raw.y = event.y;
-                timeSinceCommandSeek = 0;
+                    cBP.timePositionDragElement.raw.active = true;
+                    cBP.timePositionDragElement.raw.x = event.x;
+                    cBP.timePositionDragElement.raw.y = event.y;
+                    timeSinceCommandSeek = 0;
 
-
-                mouseInterval = setInterval(()=>{
-                    let tPDE = cBP.timePositionDragElement;
-
-                    if (DrawingRunTime.getCurrentTime() - cBP.timePositionDragElement.timeSinceActive > 200){
-                        let timePosition = Math.min(1, Math.max(0, (cBP.timePositionDragElement.raw.x - cBP.x) / cBP.width)) * BackgroundTasks.currentSpotifyState.timeLength;
-                        if (Math.abs(timePosition - BackgroundTasks.currentSpotifyState.timePosition) > 1 &&
-                            (DrawingRunTime.getCurrentTime() - timeSinceCommandSeek) > 500){
-                            timeSinceCommandSeek = DrawingRunTime.getCurrentTime();
-                            addTransmitStatus(9, "Transmit");
-                            
-                            transmission.controller!.sendMessage({
-                                messageType: "SeekTrack",
-                                replyType: "feedback",
-                                callback: onNewSpotifyState
-                            }, timePosition);
-                        }
+                    
+                    if (mouseInterval == null){
+                        mouseInterval = setInterval(()=>{
+                            let tPDE = cBP.timePositionDragElement;
+        
+                            if (DrawingRunTime.getCurrentTime() - cBP.timePositionDragElement.timeSinceActive > 200){
+                                let timePosition = Math.min(1, Math.max(0, (cBP.timePositionDragElement.raw.x - cBP.x) / cBP.width)) * BackgroundTasks.currentSpotifyState.timeLength;
+                                if (Math.abs(timePosition - BackgroundTasks.currentSpotifyState.timePosition) > 1 &&
+                                    (DrawingRunTime.getCurrentTime() - timeSinceCommandSeek) > 500){
+                                    timeSinceCommandSeek = DrawingRunTime.getCurrentTime();
+                                    addTransmitStatus(9, "Transmit");
+                                    
+                                    transmission.controller!.sendMessage({
+                                        messageType: "SeekTrack",
+                                        replyType: "feedback",
+                                        callback: onNewSpotifyState
+                                    }, timePosition);
+                                }
+                            }
+                        }, 250);
                     }
-                }, 250);
-            }
+                }
         });
 
             
@@ -3440,7 +3446,10 @@ class BackgroundTasks{
         });
         canvas.addEventListener("mouseup", (event)=>{
             if (cBP.timePositionDragElement.raw.active){
-                clearInterval(mouseInterval);
+                if (mouseInterval){
+                    clearInterval(mouseInterval);
+                    mouseInterval = null;
+                }
                 cBP.timePositionDragElement.raw.active = false;
 
                 cBP.timePositionDragElement.raw.x = event.x;
