@@ -88,7 +88,7 @@ class AudioListener{
                 }
                 currentAudioStream.stdout.read(dataLength);
             
-                if (AudioListener.currentSpotifyState){
+                if (AudioListener.currentSpotifyState && nonZeroAudioData == false){
                     AudioListener.currentDFTEngineSamples.push([correctedAudioArray, SpotifyControllerv2.estimateTimePosition(AudioListener.currentSpotifyState)]);
                 }
 
