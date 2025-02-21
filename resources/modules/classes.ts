@@ -13,4 +13,5 @@ export type SpotifyState = {
     popularity: number;
     trackNumber: number;
     volume: number;
+    loopStatus: "Playlist" | "Track" | "None"
 }
