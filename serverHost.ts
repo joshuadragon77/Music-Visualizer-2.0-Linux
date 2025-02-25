@@ -702,15 +702,42 @@ class SpotifyControllerv2{
             }
             SpotifyControllerv2.fetchingSpotifyState = true;
                 
-            SpotifyControllerv2.dbusFetchCurrentSpotifyState().then((newSpotifyState)=>{
+            ChildProcess.exec(`osascript -e "if application \\"Spotify\\" is running then" -e "tell application \\"Spotify\\"" -e "return \\"\\\\\\"TrackName\\\\\\":\\\\\\"\\" & (get name of current track) & \\"\\\\\\",\\\\\\"Artist\\\\\\":\\\\\\"\\" & (get artist of current track) & \\"\\\\\\",\\\\\\"TimePosition\\\\\\":\\" & (get player position) & \\",\\\\\\"PlayState\\\\\\":\\" & (get player state = playing) & \\",\\\\\\"TimeLength\\\\\\":\\" & (get duration of current track) / 1000 & \\",\\\\\\"ArtworkURL\\\\\\":\\\\\\"\\" & (get artwork url of current track) & \\"\\\\\\",\\\\\\"ID\\\\\\":\\\\\\"\\" & (get id of current track) & \\"\\\\\\",\\\\\\"AlbumName\\\\\\":\\\\\\"\\" & (get album of current track) & \\"\\\\\\",\\\\\\"Popularity\\\\\\":\\" & (get popularity of current track) & \\",\\\\\\"Track Number\\\\\\":\\" & (get track number of current track) & \\",\\\\\\"Volume\\\\\\":\\" & (get sound volume)" -e "end tell" -e " else" -e " return \\"{}\\"" -e "end if";`, (err, data)=>{
                 SpotifyControllerv2.fetchingSpotifyState = false;
-                StoringSystem.obtainSpotifyImage(newSpotifyState.artworkURL, newSpotifyState.trackName).then(()=>{
-                    accept(newSpotifyState);
-                });
-            }).catch((er)=>{
-                SpotifyControllerv2.fetchingSpotifyState = false;
-                return reject("Unknown failure to fetch current spotify state.");
-            });
+                if (err){
+                    console.warn(`Spotify Process Error:`);
+                    console.error(err);
+                    reject(err);
+                    return;
+                }
+                
+                let matches = data.match(/"TrackName":"(.*)","Artist":"(.*)","TimePosition":(\d*\.\d*),"PlayState":(false|true),"TimeLength":(\d*\.\d*),"ArtworkURL":"(.*)","ID":"(.*)","AlbumName":"(.*)","Popularity":(\d+),"Track Number":(\d+),"Volume":(\d+)/);
+                
+                if (matches){
+                    let newSpotifyState: SpotifyState = {
+                        trackName: matches[1],
+                        artistName: matches[2],
+                        timePosition: Number(matches[3]),
+                        playState: matches[4] == "true",
+                        timeLength: Number(matches[5]),
+                        artworkURL: matches[6],
+                        spotifyID: matches[7],
+                        albumName: matches[8],
+                        popularity: Number(matches[9]),
+                        trackNumber: Number(matches[10]),
+                        volume: Number(matches[11]),
+                        localTrack: matches[7].match(/^spotify:local/) != null,
+                        timeFeteched: Date.now(),
+                        loopStatus: "None"
+                    };
+                    StoringSystem.obtainSpotifyImage(matches[6], matches[8]).then(()=>{
+                        accept(newSpotifyState);
+                    });
+                }else{
+                    console.warn(`Spotify Process Malformed Error:`);
+                    console.error(err);
+                }
+            })
         });
     }
 
@@ -730,163 +757,54 @@ class SpotifyControllerv2{
         }, 1000);
     };
 
-    static dbusFetchCurrentSpotifyState(){
-        return new Promise<SpotifyState>((accept, reject)=>{
-            let completedTask = 0;
-    
-            let currentSpotifyState: SpotifyState = {
-                playState: false,
-                localTrack: false,
-                timePosition: 0,
-                timeLength: 0,
-                artistName: "",
-                trackName: "",
-                artworkURL: "",
-                spotifyID: "",
-                albumName: "",
-                loopStatus: "None",
-                timeFeteched: 0,
-                popularity: 0,
-                trackNumber: 0,
-                volume: 0
-            };
-
-            let completeTask = function(){
-                completedTask ++;
-                if (completedTask == 4){
-                    return accept(currentSpotifyState);
-                };
-            };
-    
-            SpotifyControllerv2.spotifyInterface.getProperty("Metadata", (err, data: any)=>{
-                if (err){
-                    console.warn(`Trying to fetch from DBUS to Spotify but failed with: ${err.message}`);
-                    // console.error(err);
-                    return reject(err);
-                }
-    
-                currentSpotifyState = {
-                    playState: false,
-                    localTrack: false,
-                    timePosition: 0,
-                    timeLength: data["mpris:length"] / 1000000,
-                    artistName: (data["xesam:artist"] as string[]).join(" & "),
-                    trackName: data["xesam:title"],
-                    artworkURL: data["mpris:artUrl"] || "missing value",
-                    spotifyID: data["mpris:trackid"],
-                    albumName: data["xesam:album"],
-                    timeFeteched: Date.now(),
-                    popularity: data["xesam:autoRating"],
-                    trackNumber: data["xesam:trackNumber"],
-                    loopStatus: "None",
-                    volume: 0
-                };
-            
-                SpotifyControllerv2.spotifyInterface.getProperty("Position", (err, data: any)=>{
-                    if (err)
-                        console.error(err);
-                    currentSpotifyState.timePosition = data / 1000000;
-                    completeTask();
-                });
-
-                SpotifyControllerv2.spotifyInterface.getProperty("LoopStatus", (err, data: any)=>{
-                    if (err)
-                        console.error(err);
-                    currentSpotifyState.loopStatus = data;
-                    completeTask();
-                });
-                
-                SpotifyControllerv2.spotifyInterface.getProperty("PlaybackStatus", (err, data: any)=>{
-                    if (err)
-                        console.error(err);
-                    currentSpotifyState.playState = data == "Playing";
-                    completeTask();
-                });
-                
-                SpotifyControllerv2.spotifyInterface.getProperty("Volume", (err, data: any)=>{
-                    if (err)
-                        console.error(err);
-                    currentSpotifyState.volume = data;
-                    completeTask();
-                });
-                
-                completeTask();
-            });
-        });
-    }
 
     static pausePlaySpotify(){
         return new Promise<void>((accept, reject)=>{
-            SpotifyControllerv2.playPause();
-            accept();
-        });
-    }
-
-    static pause(){
-        return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Pause();
-            accept();
-        })
-    }
-    
-    static play(){
-        return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Play();
-            accept();
-        })
-    }
-    
-    static nextTrack(){
-        return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Next();
-            accept();
-        })
-    }
-    
-    static previousTrack(){
-        return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Previous();
-            accept();
-        })
-    }
-
-    static setLoopMode(loopMode: "None" | "Track" | "Playlist"){
-        return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.setProperty("LoopStatus", loopMode, ()=>{
-
-            });
-            accept();
-        })
-    }
-    
-    
-    static playPause(){
-        return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.PlayPause();
-            accept();
-        })
-    }
-    
-    static seekTrack(position: number){
-        return new Promise<void>((accept)=>{
-            let estimatedTimePosition = SpotifyControllerv2.estimateTimePosition(SpotifyControllerv2.currentFetchSpotifyState!);
-            SpotifyControllerv2.spotifyInterface.Seek((position - estimatedTimePosition) * 1000000);
-            accept();
-        })
-    }
-    
-
-    static init(){
-        let bus = getBus("session");
-
-        return new Promise<void>((accept)=>{
-            console.log("Attempting to get interface...");
-            bus.getInterface("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", function(err, interf){
-                SpotifyControllerv2.spotifyInterface = interf;
-                console.log("Got interface!");
+            let spotifyStateFetcherScript = `osascript -e 'tell Application "Spotify" to playpause'`;
+            
+            ChildProcess.exec(spotifyStateFetcherScript, (stderror, stdout)=>{
+                if (stderror)
+                    reject(stderror);
                 accept();
             });
         });
+    }
+    static previousTrack(){
+        return new Promise<void>((accept, reject)=>{
+            let spotifyStateFetcherScript = `osascript -e 'tell Application "Spotify" to previous track'`;
+            
+            ChildProcess.exec(spotifyStateFetcherScript, (stderror, stdout)=>{
+                if (stderror)
+                    reject(stderror);
+                accept();
+            });
+        });
+    }
+    static nextTrack(){
+        return new Promise<void>((accept, reject)=>{
+            let spotifyStateFetcherScript = `osascript -e 'tell Application "Spotify" to next track'`;
+            
+            ChildProcess.exec(spotifyStateFetcherScript, (stderror, stdout)=>{
+                if (stderror)
+                    reject(stderror);
+                accept();
+            });
+        });
+    }
+
+    static seekTrack(position: number){
+        return new Promise<void>((accept, reject)=>{
+            let spotifyStateFetcherScript = `osascript -e 'tell Application "Spotify" to set player position to ${position}'`;
+            
+            ChildProcess.exec(spotifyStateFetcherScript, (stderror, stdout)=>{
+                if (stderror)
+                    reject(stderror);
+                accept();
+            });
+        });
+    }
+
+    static init(){
     }
 }
 
@@ -935,11 +853,6 @@ function main(){
 
         controller.listenMessage("SeekTrack", (request, timePosition)=>{
             musicController.seekTrack(timePosition).then(()=>{
-                musicController.getCurrentSpotifyState(true).then(state=>request.accept!(state));
-            }).catch(request.reject!);
-        });
-        controller.listenMessage("SetLoopMode", (request, loopMode)=>{
-            musicController.setLoopMode(loopMode).then(()=>{
                 musicController.getCurrentSpotifyState(true).then(state=>request.accept!(state));
             }).catch(request.reject!);
         });
