@@ -4,7 +4,6 @@ import { JadeStruct, Buffer_JADEPORTED } from "./modules/jadestruct.js";
 import { SpotifyState } from "./modules/classes.js";
 
 const canvas = document.querySelector("canvas")!;
-const context2D = canvas.getContext("2d")!;
 
 type Parameters = {
     relevancyLevel: number
@@ -61,6 +60,25 @@ type LyricalState = {
     lineProgresPercentage: number;
 
     endOfLyrics: boolean;
+}
+
+class AlbumCoverHandler{
+    static previousImageCanvas = new OffscreenCanvas(640, 640);
+    static currentImageCanvas = new OffscreenCanvas(640, 640);
+
+    public static setNewImage(image: ImageBitmap){
+
+        let previousImageContext = AlbumCoverHandler.previousImageCanvas.getContext("2d")!;
+        let currentImageContext = AlbumCoverHandler.currentImageCanvas.getContext("2d")!;
+
+        previousImageContext.clearRect(0, 0, 640, 640);
+        previousImageContext.drawImage(AlbumCoverHandler.currentImageCanvas, 0, 0);
+
+        currentImageContext.clearRect(0, 0, 640, 640);
+        currentImageContext.drawImage(image, 0, 0);
+
+        image.close();
+    }
 }
 
 class LyricalPlayer{
@@ -241,7 +259,7 @@ class DynamicPrimaryColorEngine{
 
     static foregroundParameter: Parameters = {
         relevancyLevel: 0.810536892101989,
-        sampleSize: 35 + 10,
+        sampleSize: 35 + 10 + 200,
         vibranceLevel: 15.074702546038452,
         ignoranceOfCommonality: 3.6437789828167393,
         smallSampleLevel: 13.66534402820978,
@@ -252,7 +270,7 @@ class DynamicPrimaryColorEngine{
     }
     static backgroundParameters: Parameters = {
         relevancyLevel: 0.7900542435600248,
-        sampleSize: 76,
+        sampleSize: 76 + 200,
         vibranceLevel: -12.277206152130615,
         ignoranceOfCommonality: 393.96405899603724,
         smallSampleLevel: -305.14984595844174,
@@ -493,9 +511,8 @@ class DrawingRunTime{
                 imageRenderStyle: "old" as "old" | "current" | "previous" 
             },
             imageTransitionFactor: 0,
-            image: undefined as ImageBitmap | undefined,
-            blurredImage: undefined as ImageBitmap | undefined,
-            previousImage: undefined as ImageBitmap | undefined
+            image: undefined as OffscreenCanvas | undefined,
+            previousImage: undefined as OffscreenCanvas | undefined
         },
         SongTitle: {
             x: 250,
@@ -674,6 +691,8 @@ class DrawingRunTime{
         let backgroundColor = DrawingRunTime.previousBackgroundColor;
         let foregroundColor = DrawingRunTime.previousForegroundColor;
         let textColor = new Color(255, 255, 255);
+
+        let context2D = canvas.getContext("2d")!;
 
         let currentTimePositionFactor = 0;
 
@@ -1212,7 +1231,7 @@ class DrawingRunTime{
         //RENDER
         let startRenderingTime = DrawingRunTime.getCurrentTime();
 
-        // context2D.clearRect(0, 0, maxWidth, maxHeight);
+        context2D.clearRect(0, 0, maxWidth, maxHeight);
         context2D.drawImage(DrawingRunTime.backgroundCanvas, 0, 0, maxWidth, maxHeight);
 
 
@@ -2007,7 +2026,7 @@ class DrawingRunTime{
                 
                 if (BackgroundTasks.currentSpotifyState && BackgroundTasks.currentJadeLyrics){
                     let tPDE = cBP.timePositionDragElement;
-                    currentTimePosition = tPDE.currentTimePosition + 0.2;// + .1;//- 0.05;//- .05;
+                    currentTimePosition = tPDE.currentTimePosition - 0.05;//- 0.05;//- .05;
 
                     // if (dftContent.enabled == false){
                     //     currentTimePosition += 0.24;
@@ -2843,7 +2862,7 @@ class DrawingRunTime{
         setInterval(()=>{
             samples.push(DrawingRunTime.renderObjects.DFTContent.currentAudioSample[0]);
 
-            if (Date.now() - timeSinceVisualizerModeChange > 3000 && samples.length >= 30){
+            if (Date.now() - timeSinceVisualizerModeChange > 3000 && samples.length >= 75){
 
                 let averageLoudness = 0;
 
@@ -2870,9 +2889,9 @@ class DrawingRunTime{
                     visualizerMode = selectedVisualizerMode;
                     timeSinceVisualizerModeChange = Date.now();
                     if (selectedVisualizerMode == 1){
-                        threshold = 0.1;
+                        threshold = 0.15;
                     }else{
-                        threshold = 0.5;
+                        threshold = 0.6;
                     }
                 }
             }
@@ -2914,7 +2933,7 @@ class DrawingRunTime{
 
                     backgroundContext2D.scale(1, 0.5)
                     backgroundContext2D.rotate(Math.PI / 4);
-                    backgroundContext2D.translate(0, -effectiveWidth + 200 * (DrawingRunTime.getCurrentTime() / 500 % 2));
+                    backgroundContext2D.translate(0, -effectiveWidth + 200 * (DrawingRunTime.getCurrentTime() / 400 % 2));
                     for (let x = 0;x<effectiveWidth / 50;x++){
                         for (let y = 0;y<effectiveWidth / 50;y++){
                             let index = x + y;
@@ -2934,7 +2953,7 @@ class DrawingRunTime{
                 if (sunnyDayEnabled != 0){
                     for (let i = 0;i<50;i++){
                         let randomRotation = 3 * Math.tan(i / 50 - 0.5) + 0.75 
-                            + Math.sin(DrawingRunTime.getCurrentTime() / 2500) * Math.PI / 50 * (.5 + .75 * DrawingRunTime.bundleRandomness[i + 3]);
+                            + Math.sin(DrawingRunTime.getCurrentTime() / 2000) * Math.PI / 25 * (.5 + .75 * DrawingRunTime.bundleRandomness[i + 3]);
                         let maximumMagnitude = 2 * Math.sqrt(Math.pow(maxWidth, 2) + Math.pow(maxHeight, 2));
                         let toX = Math.cos(randomRotation) * maximumMagnitude;
                         let toY = Math.sin(randomRotation) * maximumMagnitude;
@@ -2947,7 +2966,7 @@ class DrawingRunTime{
 
                         backgroundContext2D.lineWidth = 100;
                         backgroundContext2D.shadowColor = randomColor.toStyle();
-                        backgroundContext2D.strokeStyle = ColorMixer.newOpacity(randomColor,.2 * sunnyDayEnabled).toStyle();
+                        backgroundContext2D.strokeStyle = ColorMixer.newOpacity(randomColor,0.1 * sunnyDayEnabled).toStyle();
                         backgroundContext2D.stroke();
                     }
                 }
@@ -2959,8 +2978,11 @@ class DrawingRunTime{
     
                     let timeFactor3 = Math.min(1, (DrawingRunTime.getCurrentTime() - dftContent.timeSinceAudioSample) / 75);
                     let animationFactor3 = AnimationTween.simpleExponential(timeFactor3);
+
+                    let timeFactor4 = Math.min(1, (DrawingRunTime.getCurrentTime() - TimingState.timeSinceTrackChange) / 1500);
+                    let animationFactor4 = AnimationTween.bounce(AnimationTween.exponential(timeFactor4))
                     
-                    for (let i = 0;i<75;i++){
+                    for (let i = 0;i<125;i++){
                         let circleX = DrawingRunTime.bundleRandomness[i] * maxWidth - 200;
                         let circleY = DrawingRunTime.bundleRandomness[i + 1] * maxHeight + 500;
                         let transitionInitialFactor = DrawingRunTime.bundleRandomness[i + 3];
@@ -2969,6 +2991,8 @@ class DrawingRunTime{
                         let totalLoudness = 0;
     
                         let scaledSamples = (i + 1) / (76) * DrawingRunTime.renderObjects.DFTContent.currentAudioSample.length
+
+                        accumulativeValues[i] += animationFactor4 * 500;
     
     
                         for (let r = 0;r<scaledSamples;r++){
@@ -2980,10 +3004,13 @@ class DrawingRunTime{
     
                             if (Number.isNaN(accumulativeValues[i]) || accumulativeValues[i] > 7000 + 10000 * speedFactor){
                                 accumulativeValues[i] = 0;
-                            }
+                            };
                         }
     
                         totalLoudness /= (scaledSamples);
+
+                        if (Number.isNaN(totalLoudness))
+                            totalLoudness = 0;
         
                         let randomColor = DrawingRunTime.foregroundColorPallete[Math.floor(DrawingRunTime.bundleRandomness[i + 2] * DrawingRunTime.foregroundColorPallete.length)];
         
@@ -2994,7 +3021,7 @@ class DrawingRunTime{
                         circleY -= timeFactor * 600;
         
                         let gradient = backgroundContext2D.createRadialGradient(circleX, circleY, 0, circleX, circleY, 50 + timeFactor * 200 + 40* totalLoudness);
-                        gradient.addColorStop(0, ColorMixer.newOpacity(randomColor, .4 * animationFactor * animationFactor2 * cityLightEnabled).toStyle());
+                        gradient.addColorStop(0, ColorMixer.newOpacity(randomColor, .4 * (animationFactor * 0.5 + 0.5) * animationFactor2 * cityLightEnabled).toStyle());
                         gradient.addColorStop(1, ColorMixer.newOpacity(randomColor, 0).toStyle());
                         
                         backgroundContext2D.fillStyle = gradient;
@@ -3204,9 +3231,11 @@ class BackgroundTasks{
                                         i ++;
                                         colors.push(cc.color);
                                     }
-                                    // for (let cc of results.backgroundColor){
-                                    //     colors.push(cc.color);
-                                    // }
+                                    
+                                    while (i <= 8){
+                                        colors.push(results.backgroundColor[Math.floor(Math.random() * results.backgroundColor.length)].color);
+                                        i ++;
+                                    }
 
                                     return colors;
                                 })();
@@ -3227,15 +3256,10 @@ class BackgroundTasks{
 
                                 let processedImage = Images.imageOverler.transferToImageBitmap();
 
-                                if (DrawingRunTime.renderObjects.AlbumCover.previousImage){
-                                    DrawingRunTime.renderObjects.AlbumCover.previousImage.close();
-                                }
-                                if (DrawingRunTime.renderObjects.AlbumCover.blurredImage){
-                                    DrawingRunTime.renderObjects.AlbumCover.blurredImage.close();
-                                }
                                 onCompleteTask();
-                                DrawingRunTime.renderObjects.AlbumCover.previousImage = DrawingRunTime.renderObjects.AlbumCover.image;
-                                DrawingRunTime.renderObjects.AlbumCover.image = processedImage;
+                                AlbumCoverHandler.setNewImage(processedImage);
+                                DrawingRunTime.renderObjects.AlbumCover.previousImage = AlbumCoverHandler.previousImageCanvas;
+                                DrawingRunTime.renderObjects.AlbumCover.image = AlbumCoverHandler.currentImageCanvas;
                                 accept();
                                 timeSinceProcessingUpdate = 0;
                             };
@@ -3247,9 +3271,6 @@ class BackgroundTasks{
                 timeSinceProcessingUpdate = 0;
                 if (BackgroundTasks.currentSpotifyState.spotifyID != data.spotifyID){
                     if (DrawingRunTime.renderObjects.AlbumCover.previousImage != DrawingRunTime.renderObjects.AlbumCover.image){
-                        if (DrawingRunTime.renderObjects.AlbumCover.previousImage){
-                            DrawingRunTime.renderObjects.AlbumCover.previousImage.close();
-                        }
 
                         DrawingRunTime.renderObjects.AlbumCover.previousImage = DrawingRunTime.renderObjects.AlbumCover.image;
                         DrawingRunTime.previousForegroundColor = DrawingRunTime.foregroundColor;
@@ -3275,14 +3296,15 @@ class BackgroundTasks{
                     BackgroundTasks.jadeLyricsSupported = false;
                 }
                 addTransmitStatus(16, "Transmit");
-                controller.sendMessage({
-                    messageType: "ObtainDFTCache",
-                    replyType: "feedback",
-                    callback(response, cache: DFTEngineAudioSample){
-                        BackgroundTasks.currentDFTCache = cache;
-                        console.log(cache);
-                    }
-                }, data.spotifyID);
+                BackgroundTasks.currentDFTCache = null;
+                if (data.localTrack == false)
+                    controller.sendMessage({
+                        messageType: "ObtainDFTCache",
+                        replyType: "feedback",
+                        callback(response, cache: DFTEngineAudioSample){
+                            BackgroundTasks.currentDFTCache = cache;
+                        }
+                    }, data.spotifyID);
 
                 controller.sendMessage({
                     messageType: "ObtainJadeLyrics",
@@ -3499,7 +3521,7 @@ class BackgroundTasks{
                 averageServerTime /= 10;
                 averageClientTime /= 10;
 
-                BackgroundTasks.averageDelayExperience = averageClientTime - averageServerTime;
+                BackgroundTasks.averageDelayExperience = averageClientTime - averageServerTime + 75;
 
 
             })();

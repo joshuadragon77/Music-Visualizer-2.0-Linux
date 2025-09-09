@@ -64,7 +64,6 @@ class AudioListener{
         if (AudioListener.audioListenerProcess)
             return;
 
-
         let currentAudioStream = ChildProcess.spawn("java", ["-jar", "DFTEngine.jar"]);//ChildProcess.spawn("cava", ["-p", "cava.config"]);//ChildProcess.spawn("java", ["--enable-preview", "-jar", "AudioListener.jar"]);
         AudioListener.listeningIntervalProcess.push(setInterval(()=>{
 
@@ -88,7 +87,7 @@ class AudioListener{
                 }
                 currentAudioStream.stdout.read(dataLength);
             
-                if (AudioListener.currentSpotifyState && nonZeroAudioData == false){
+                if (AudioListener.currentSpotifyState && nonZeroAudioData == false && AudioListener.currentSpotifyState.localTrack == false){
                     AudioListener.currentDFTEngineSamples.push([correctedAudioArray, SpotifyControllerv2.estimateTimePosition(AudioListener.currentSpotifyState)]);
                 }
 
@@ -135,7 +134,17 @@ class AudioListener{
         if (dataIndex == undefined){
             return null;
         }else{
-            return JadeStruct.toObject((await AudioListener.database.readData(dataIndex)).Buffer);
+            let data;
+            try{
+                data = await AudioListener.database.readData(dataIndex);
+                return JadeStruct.toObject(data.Buffer);
+            }
+            catch(er){
+                AudioListener.dftLookupTable.delete(spotifyID);
+                console.warn(`Failed to read the data for data index ${dataIndex}. Making a new recording...`);
+                return null;
+            }
+
         }
     }
 
@@ -186,11 +195,13 @@ class AudioListener{
             dftEngineAudioSample.samples = newSamplesList;
 
             await AudioListener.database.writeData(JadeStruct.toJadeStruct(dftEngineAudioSample).convertToNodeJSBuffer(), dataIndex, spotifyID);
+            await AudioListener.saveLookupTable();
             console.log(`DFT Cached!: ${spotifyID} with sample size of ${newSamplesList.length}. Saving to the database of size: ${AudioListener.dftLookupTable.size}`);
         }
     }
 
     static async close(){
+        await AudioListener.saveLookupTable();
         await AudioListener.database.close();
     }
 
@@ -660,7 +671,7 @@ class SpotifyControllerv2{
 
                 outputSpotifyState = currentSpotifyState!;
                 outputSpotifyState.playState = true;
-                outputSpotifyState.timePosition = SpotifyControllerv2.estimateTimePosition(transitionedFromFetchSpotify, false) - transitionedFromFetchSpotify.timeLength;
+                outputSpotifyState.timePosition = Math.max(0, SpotifyControllerv2.estimateTimePosition(transitionedFromFetchSpotify, false) - transitionedFromFetchSpotify.timeLength - 0.1);
                 outputSpotifyState.timeFeteched = Date.now();
             }
         }
@@ -717,17 +728,19 @@ class SpotifyControllerv2{
     static resyncSpotifyPlayback(){
         SpotifyControllerv2.spotifyResynced = true;
         setTimeout(async () => {
-            for (let i = 0;i<3;i++){
-                SpotifyControllerv2.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 5)})
-                SpotifyControllerv2.pausePlaySpotify();
-                await new Promise(accept => {setTimeout(accept, 500)})
+
+            for (let i = 0;i<5;i++){
+                await SpotifyControllerv2.pause();
+                await SpotifyControllerv2.play();
+                await new Promise(accept => {setTimeout(accept, 150)});
             }
+            // await SpotifyControllerv2.seekTrack(0);
+            await SpotifyControllerv2.play();
             setTimeout(() => {
                 SpotifyControllerv2.getCurrentSpotifyState(true);
                 SpotifyControllerv2.spotifyResynced = false;
             }, 100);
-        }, 1000);
+        }, 1500);
     };
 
     static dbusFetchCurrentSpotifyState(){
@@ -767,7 +780,7 @@ class SpotifyControllerv2{
     
                 currentSpotifyState = {
                     playState: false,
-                    localTrack: false,
+                    localTrack: !!(data["mpris:trackid"] as string || "").match(/^\/com\/spotify\/local\//),
                     timePosition: 0,
                     timeLength: data["mpris:length"] / 1000000,
                     artistName: (data["xesam:artist"] as string[]).join(" & "),
@@ -816,62 +829,55 @@ class SpotifyControllerv2{
     }
 
     static pausePlaySpotify(){
-        return new Promise<void>((accept, reject)=>{
-            SpotifyControllerv2.playPause();
+        return new Promise<void>(async (accept, reject)=>{
+            await SpotifyControllerv2.playPause();
             accept();
         });
     }
 
     static pause(){
         return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Pause();
-            accept();
+            SpotifyControllerv2.spotifyInterface.Pause(accept);
         })
     }
     
     static play(){
         return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Play();
-            accept();
+            SpotifyControllerv2.spotifyInterface.Play(accept);
         })
     }
     
     static nextTrack(){
         return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Next();
-            accept();
+            SpotifyControllerv2.spotifyInterface.Next(accept);
         })
     }
     
     static previousTrack(){
         return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.Previous();
-            accept();
+            SpotifyControllerv2.spotifyInterface.Previous(accept);
         })
     }
 
     static setLoopMode(loopMode: "None" | "Track" | "Playlist"){
         return new Promise<void>((accept)=>{
             SpotifyControllerv2.spotifyInterface.setProperty("LoopStatus", loopMode, ()=>{
-
+                accept();
             });
-            accept();
         })
     }
     
     
     static playPause(){
         return new Promise<void>((accept)=>{
-            SpotifyControllerv2.spotifyInterface.PlayPause();
-            accept();
+            SpotifyControllerv2.spotifyInterface.PlayPause(accept);
         })
     }
     
     static seekTrack(position: number){
         return new Promise<void>((accept)=>{
             let estimatedTimePosition = SpotifyControllerv2.estimateTimePosition(SpotifyControllerv2.currentFetchSpotifyState!);
-            SpotifyControllerv2.spotifyInterface.Seek((position - estimatedTimePosition) * 1000000);
-            accept();
+            SpotifyControllerv2.spotifyInterface.Seek((position - estimatedTimePosition) * 1000000, accept);
         })
     }
     

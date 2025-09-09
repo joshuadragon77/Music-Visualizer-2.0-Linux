@@ -314,7 +314,7 @@ export class ExtraShapes{
 }
 
 export class ImageDrawer{
-    static drawImage(drawingContext: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, img: HTMLImageElement | HTMLCanvasElement | ImageBitmap, x: number, y: number, width: number, height?: number){
+    static drawImage(drawingContext: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, img: HTMLImageElement | HTMLCanvasElement | ImageBitmap | OffscreenCanvas, x: number, y: number, width: number, height?: number){
         let currentImgSize: {width: number, height: number};
         switch(Object.getPrototypeOf(img)){
             case ImageBitmap.prototype:{
@@ -322,6 +322,7 @@ export class ImageDrawer{
                 currentImgSize = {width: imageMedia.width, height: imageMedia.height};
                 break;
             }
+            case OffscreenCanvas.prototype:
             case HTMLCanvasElement.prototype:{
                 let canvasMedia = img as HTMLCanvasElement;
                 currentImgSize = {width: canvasMedia.width, height: canvasMedia.height};
