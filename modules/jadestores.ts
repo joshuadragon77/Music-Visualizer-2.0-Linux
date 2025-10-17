@@ -658,7 +658,8 @@ export class LowLevelJadeDB{
                                     console.debugDetailed(`Found empty blocks at ${ePointer.position} with a size ${ePointer.size}. Consumed ${additionalBlocksRequired - i} empty spaces.`);
                                     
                                     if (remainingEmptySpace > 0){
-                                        await this.setEPointer(newEPointerEndPosition + i, null, 0, ePointer.size);
+                                        // Commented this setEpointer function call because it's useless and causes intended behaviour by the delete this.ePointers operation.
+                                        // await this.setEPointer(newEPointerEndPosition + i, null, 0, ePointer.size);
                                         await this.setEPointer(newEPointerEndPosition + additionalBlocksRequired, null, 0, remainingEmptySpace);
                                     }else{
                                         console.debugDetailed(`Consumed all the empty spaces here at ${ePointer.position}!`);
@@ -666,6 +667,7 @@ export class LowLevelJadeDB{
                                     break;
                                 }
                                 case 2:{
+                                    let remainingEmptySpace = ePointer.size - (additionalBlocksRequired - i);
 
                                     console.debugDetailed(`Found blocks with data at ${ePointer.position} with a size ${ePointer.size}. Relocating them...`);
                                     let newEPointer = this.locateEmptyBlocks(ePointer.size, newEPointerEndPosition + additionalBlocksRequired, (searchedEPointer)=>{
@@ -680,8 +682,13 @@ export class LowLevelJadeDB{
                                         this.copy(ePointer.position + r, newEPointer.position + r).then(completePreTask).catch(reject);
                                     }
                                     await this.setEPointer(newEPointer.position, ePointer.index, ePointer.type, ePointer.size);
-                                    await this.setEPointer(newEPointerEndPosition + i, null, 0, ePointer.size);
-
+                                    // Commented this setEpointer function call because it's useless and causes intended behaviour by the delete this.ePointers operation.
+                                    // await this.setEPointer(newEPointerEndPosition + i, null, 0, ePointer.size);
+                                    if (remainingEmptySpace > 0){
+                                        await this.setEPointer(newEPointerEndPosition + additionalBlocksRequired, null, 0, remainingEmptySpace);
+                                    }else{
+                                        console.debugDetailed(`Consumed all the empty spaces here at ${ePointer.position}!`);
+                                    }
                                     break;
                                 }
                             }
@@ -714,6 +721,7 @@ export class LowLevelJadeDB{
                     let foundEpointers = 0;
     
                     while (true){
+
                         let rawBuffer = Buffer.alloc(7);
     
                         let blockLocation = Math.floor(currentIndex / 3);
@@ -782,8 +790,7 @@ export class LowLevelJadeDB{
     
                     }
     
-                    
-    
+                
                     console.debug(`Found Terminal Point! Stopping EPointers Scans! ${foundEpointers} Epointers are located`);
                     
                     accept();
